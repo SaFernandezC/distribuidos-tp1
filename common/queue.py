@@ -16,13 +16,16 @@ class Queue:
         self._declare(bind, exchange_type, routing_key)
 
     def _declare(self, bind, exchange_type, routing_key):
+        if self.exchange_name != '':
+            self.channel.exchange_declare(exchange=self.exchange_name, exchange_type=exchange_type, durable=True)
+
         if self.queue_name != '':
             self.channel.queue_declare(queue=self.queue_name, durable=True)
+            # Caso especial para poder escalar
+            if bind:
+                self.channel.queue_bind(exchange=self.exchange_name, queue=self.queue_name)
 
-        if self.exchange_name != '':
-            self.channel.exchange_declare(exchange=self.exchange_name, exchange_type=exchange_type)
-
-        if bind:
+        if self.queue_name == '' and bind:
             result = self.channel.queue_declare(queue='', exclusive=True)
             self.queue_name = result.method.queue
 
@@ -39,7 +42,7 @@ class Queue:
             exchange=self.exchange_name,
             routing_key=routing_key,
             body=body,
-            # properties=pika.BasicProperties(delivery_mode=2)
+            properties=pika.BasicProperties(delivery_mode=2)
         )
 
     def recv(self, callback, start_consuming=True):

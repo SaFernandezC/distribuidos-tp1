@@ -4,7 +4,7 @@ RUN pip install --upgrade pip
 RUN pip3 install pika
 RUN pip3 install python-dotenv
 
-COPY filter /
+COPY groupby /
 COPY common /common
 
-CMD ["python3", "./filter.py"]
+CMD ["python3", "./groupby.py"]
