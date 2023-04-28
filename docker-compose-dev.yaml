@@ -6,6 +6,8 @@ services:
       dockerfile: rabbitmq.dockerfile
     ports:
       - 15672:15672
+    networks:
+      - testing_net
     healthcheck:
         test: ["CMD", "curl", "-f", "http://localhost:15672"]
         interval: 10s
@@ -20,6 +22,8 @@ services:
       - rabbitmq
     links: 
       - rabbitmq
+    networks:
+      - testing_net
     environment:
       - PYTHONUNBUFFERED=1
 
@@ -31,6 +35,8 @@ services:
       - rabbitmq
     links: 
       - rabbitmq
+    networks:
+      - testing_net
     environment:
       - PYTHONUNBUFFERED=1
       - INPUT_EXCHANGE=weathers
@@ -44,58 +50,24 @@ services:
       - SELECT=city,date,prectot
       - FILTER_0=1,int,prectot,gt,35
 
-  date_modifier:
-    container_name: date_modifier
-    image: date_modifier:latest
-    restart: on-failure
-    depends_on:
-      - prectot_filter
-    links: 
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - INPUT_QUEUE_NAME=date_modifier
-      - OUTPUT_EXCHANGE=joiner_query_1
-      - OUTPUT_EXCHANGE_TYPE=fanout
+  # date_modifier:
+  #   container_name: date_modifier
+  #   image: date_modifier:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     - prectot_filter
+  #   links: 
+  #     - rabbitmq
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - INPUT_QUEUE_NAME=date_modifier
+  #     - OUTPUT_EXCHANGE=joiner_query_1
+  #     - OUTPUT_EXCHANGE_TYPE=fanout
 
 
-  joiner_query_1:
-    container_name: joiner_query_1
-    image: joiner:latest
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links: 
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - INPUT_EXCHANGE=joiner_query_1
-      - INPUT_EXCHANGE_TYPE=fanout
-      - INPUT_BIND="True"
-      - OUTPUT_QUEUE_NAME=groupby_query_1
-      - PRIMARY_KEY=city,date
-      - PRIMARY_KEY_2=city,start_date
-      - JOIN_ON=rigth
-      - SELECT=start_date,duration_sec
-
-  groupby_query_1:
-    container_name: groupby_query_1
-    image: groupby:latest
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    links: 
-      - rabbitmq
-    environment:
-      - PYTHONUNBUFFERED=1
-      - INPUT_QUEUE_NAME=groupby_query_1
-      - PRIMARY_KEY=start_date
-      - AGG=avg
-      - FIELD_TO_AGREGATE=duration_sec
-
-  # prectot_filter_2:
-  #   container_name: prectot_filter_2
-  #   image: filter:latest
+  # joiner_query_1:
+  #   container_name: joiner_query_1
+  #   image: joiner:latest
   #   restart: on-failure
   #   depends_on:
   #     - rabbitmq
@@ -103,17 +75,18 @@ services:
   #     - rabbitmq
   #   environment:
   #     - PYTHONUNBUFFERED=1
-  #     - INPUT_EXCHANGE=weathers
+  #     - INPUT_EXCHANGE=joiner_query_1
   #     - INPUT_EXCHANGE_TYPE=fanout
-  #     - INPUT_QUEUE=prectot_filter
   #     - INPUT_BIND="True"
-  #     - CANT_CONDICIONES=1
-  #     - SELECT=date,prectot
-  #     - FILTER_0=1,int,prectot,gt,35
+  #     - OUTPUT_QUEUE_NAME=groupby_query_1
+  #     - PRIMARY_KEY=city,date
+  #     - PRIMARY_KEY_2=city,start_date
+  #     - JOIN_ON=rigth
+  #     - SELECT=start_date,duration_sec
 
-  # prectot_filter_3:
-  #   container_name: prectot_filter_3
-  #   image: filter:latest
+  # groupby_query_1:
+  #   container_name: groupby_query_1
+  #   image: groupby:latest
   #   restart: on-failure
   #   depends_on:
   #     - rabbitmq
@@ -121,21 +94,17 @@ services:
   #     - rabbitmq
   #   environment:
   #     - PYTHONUNBUFFERED=1
-  #     - INPUT_EXCHANGE=weathers
-  #     - INPUT_EXCHANGE_TYPE=fanout
-  #     - INPUT_QUEUE=
-  #     - INPUT_BIND="True"
-  #     - CANT_CONDICIONES=1
-  #     - SELECT=date,prectot
-  #     - FILTER_0=1,int,prectot,gt,35
+  #     - INPUT_QUEUE_NAME=groupby_query_1
+  #     - PRIMARY_KEY=start_date
+  #     - AGG=avg
+  #     - FIELD_TO_AGREGATE=duration_sec
 
-  # filter1:
-  #   container_name: filter1
-  #   image: filter:latest
-  #   restart: on-failure
-  #   depends_on:
-  #     - rabbitmq
-  #   links: 
-  #     - rabbitmq
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
+
+networks:
+  testing_net:
+    # external: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24

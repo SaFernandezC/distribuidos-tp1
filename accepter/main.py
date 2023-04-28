@@ -1,24 +1,7 @@
 import json
 from common.queue import Queue
-
-
-# def main():
-
-#     queue = Queue(exchange_name='weathers', exchange_type='fanout')
-
-#     for i in range(100):
-#         # channel.basic_publish(exchange='', routing_key='hello', body='Hello World {}!'.format(i))
-#         queue.send(body='Hello World {}!'.format(i), routing_key='hello')
-#         print(" [x] Sent 'Hello World {}!'".format(i))
-#         time.sleep(1)
-
-#     # connection.close()
-#     queue.close()
-
-#!/usr/bin/env python3
-
 from configparser import ConfigParser
-# from server import Server
+from server import Server
 import logging
 import os
 import time
@@ -63,59 +46,57 @@ def main():
 
     # Log config parameters at the beginning of the program to verify the configuration
     # of the component
-    logging.debug(f"action: config | result: success | port: {port} | "
+    logging.info(f"action: config | result: success | port: {port} | "
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     # Initialize server and start server loop
-    # server = Server(port, listen_backlog)
-    # server.run()
-    time.sleep(5)
-    queue = Queue(exchange_name='weathers', exchange_type='fanout')
-    trips_queue = Queue(queue_name='trips_1')
+    server = Server(port, listen_backlog)
+    server.run()
 
-    finished = False
-    i = 0
-    try:
-        with open("./weather.csv") as file:
-            while not finished:
-                line = file.readline().strip()
+    # time.sleep(5)
+    # queue = Queue(exchange_name='weathers', exchange_type='fanout')
+    # trips_queue = Queue(queue_name='trips_1')
 
-                if i == 0:
-                    i += 1
-                    continue
+    # finished = False
+    # i = 0
+    # try:
+    #     with open("./weather.csv") as file:
+    #         while not finished:
+    #             line = file.readline().strip()
+
+    #             if i == 0:
+    #                 i += 1
+    #                 continue
                     
-                if not line:
-                    finished = True
-                else:
-                    parsed = line.split(',')
-                    weather = {"city": "montreal", "date":parsed[0], "prectot": parsed[1], "yearid": parsed[-1]}
-                    # print(weather)
-                    queue.send(body=json.dumps(weather))
+    #             if not line:
+    #                 finished = True
+    #             else:
+    #                 parsed = line.split(',')
+    #                 weather = {"city": "montreal", "date":parsed[0], "prectot": parsed[1], "yearid": parsed[-1]}
+    #                 # print(weather)
+    #                 queue.send(body=json.dumps(weather))
         
-        queue.send(body=json.dumps({"eof":1}))
+    #     queue.send(body=json.dumps({"eof":1}))
         
-        trip = {"city": "montreal", "start_date":'2016-08-15', "duration_sec": '10'}
-        trips_queue.send(body=json.dumps(trip))
+    #     trip = {"city": "montreal", "start_date":'2016-08-15', "duration_sec": '10'}
+    #     trips_queue.send(body=json.dumps(trip))
 
-        trip = {"city": "montreal", "start_date":'2016-08-15', "duration_sec": '5'}
-        trips_queue.send(body=json.dumps(trip))
+    #     trip = {"city": "montreal", "start_date":'2016-08-15', "duration_sec": '5'}
+    #     trips_queue.send(body=json.dumps(trip))
 
-        trip = {"city": "montreal", "start_date":'2016-10-20', "duration_sec": '15'}
-        trips_queue.send(body=json.dumps(trip))
+    #     trip = {"city": "montreal", "start_date":'2016-10-20', "duration_sec": '15'}
+    #     trips_queue.send(body=json.dumps(trip))
 
-        trip = {"city": "toronto", "start_date":'2016-10-21', "duration_sec": '15'}
-        trips_queue.send(body=json.dumps(trip))
+    #     trip = {"city": "toronto", "start_date":'2016-10-21', "duration_sec": '15'}
+    #     trips_queue.send(body=json.dumps(trip))
 
-        trip = {"city": "montreal", "start_date":'2016-15-21', "duration_sec": '15'}
-        trips_queue.send(body=json.dumps(trip))
-        # trips_queue.send(body=json.dumps({"eof":1}))
+    #     trip = {"city": "montreal", "start_date":'2016-15-21', "duration_sec": '15'}
+    #     trips_queue.send(body=json.dumps(trip))
+    #     # trips_queue.send(body=json.dumps({"eof":1}))
 
-
-        return 0
-    except Exception as e:
-        logging.error("action: apuestas enviadas | result: fail | error: {}".format(e)) 
-
-
+    #     return 0
+    # except Exception as e:
+    #     logging.error("action: apuestas enviadas | result: fail | error: {}".format(e)) 
 
 
 if __name__ == '__main__':
