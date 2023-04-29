@@ -3,11 +3,10 @@ import os
 import logging
 import json
 
-LEN_STRING = 2
-LEN_NUMBER = 2
-LEN_TYPE = 1
-NORMAL_BATCH = 'N'
-LAST_BATCH = 'L'
+SEND_WEATHERS = 'W'
+SEND_STATIONS = 'S'
+SEND_TRIPS = 'T'
+FINISH = 'F'
 ACK_OK = 0
 ACK_ERROR = 1
 
@@ -23,6 +22,7 @@ def _initialize_config():
         config_params["max_packet_size"] = int(os.getenv('MAX_PACKET_SIZE', config["DEFAULT"]["MAX_PACKET_SIZE"]))
         config_params["cant_bytes_len"] = int(os.getenv('CANT_BYTES_LEN', config["DEFAULT"]["CANT_BYTES_LEN"]))
         config_params["cant_bytes_ack"] = int(os.getenv('CANT_BYTES_ACK', config["DEFAULT"]["CANT_BYTES_ACK"]))
+        config_params["cant_bytes_action"] = int(os.getenv('CANT_BYTES_ACTION', config["DEFAULT"]["CANT_BYTES_ACTION"]))
 
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting".format(e))
@@ -37,6 +37,7 @@ class Protocol:
         self.max_packet_size = config_params["max_packet_size"]
         self.cant_bytes_len = config_params["cant_bytes_len"]
         self.cant_bytes_ack = config_params["cant_bytes_ack"]
+        self.cant_bytes_action = config_params["cant_bytes_action"]
 
     def _divide_msg(self, bet, bet_size):
         """
@@ -68,7 +69,13 @@ class Protocol:
 
     def recv_weathers(self, skt):
         batch = json.loads(self._recv_chunk(skt))
+        if "eof" in batch:
+            return batch
         return {"type": "weathers", "city": batch["city"], "data": batch["data"]}
+
+
+    def recv_action(self, skt):
+        return skt.recv_msg(self.cant_bytes_action).decode()
 
     # def recv_bets(self, skt): 
     #     """
@@ -78,14 +85,14 @@ class Protocol:
     #     logging.debug(f'action: Batch received | result: success | ip: {batch["agency"]} | msg_len: {len(batch)}')
     #     return batch
 
-    # def send_ack(self, skt, status):
-    #     """
-    #     Receives status=true for OK_ACK or status=false for ERROR
-    #     Sends ACK
-    #     """ 
-    #     msg = ACK_OK if status == True else ACK_ERROR
-    #     skt.send_msg(msg.to_bytes(self.cant_bytes_ack, byteorder='big'))
-    #     logging.debug(f'action: Send ack | result: success | ip: {skt.get_addr()} | msg: {status}')
+    def send_ack(self, skt, status):
+        """
+        Receives status=true for OK_ACK or status=false for ERROR
+        Sends ACK
+        """ 
+        msg = ACK_OK if status == True else ACK_ERROR
+        skt.send_msg(msg.to_bytes(self.cant_bytes_ack, byteorder='big'))
+        logging.debug(f'action: Send ack | result: success | ip: {skt.get_addr()} | msg: {status}')
 
     def recv_ack(self, skt):
         """

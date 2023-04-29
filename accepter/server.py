@@ -10,6 +10,7 @@ WORKERS = 1
 SEND_WEATHERS = 'W'
 SEND_STATIONS = 'S'
 SEND_TRIPS = 'T'
+FINISH = 'F'
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -32,47 +33,22 @@ class Server:
         # self.weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
 
 
-    # def _handle_connection(self, clients_queue, bets_queue):
-    #     """
-    #     Workers process: Takes clients from clients_queue, receives one bets batch from that
-    #     client, pushes that batch to bets_queue then sends ack to client.
-    #     If that was NOT the last batch pushes the client back to clients_queue to
-    #     repite the process.
-    #     Processing is done by batch and not by client.
-    #     """
-    #     while True:
-    #         try:
-    #             client_sock = clients_queue.get()
-    #             batch = self.protocol.recv_bets(client_sock)
-    #             bets, last_batch_received = self.parse_msg(batch)
-
-    #             bets_queue.put((client_sock, bets, last_batch_received))
-    #             self.protocol.send_ack(client_sock, True)
-                
-    #             if not last_batch_received:
-    #                 clients_queue.put(client_sock)
-    #             else:
-    #                 logging.info(f"action: all bets received from agency | result: success | agency: {batch['agency']}")
-
-    #             logging.debug(f"action: batch almacenado | result: success | agency: {batch['agency']} | cantidad apuestas: {len(batch['data'])}")
-    #         except Exception as e:
-    #             logging.error("action: handle_connections | result: fail | error: {}".format(e))
-
     def recv_weathers(self, client_sock):
         logging.info(f'action: receiving weathers')
         data = self.protocol.recv_weathers(client_sock)
         self.batchs_queue.put(data)
-        # print(data)
-
-        return 0
+        self.protocol.send_ack(client_sock, True)
 
 
     def handle_con(self, client_sock):
         while True:
-            # action = self.protocol.recv_action(client_sock)
+            action = self.protocol.recv_action(client_sock)
             
-            # if action == SEND_WEATHERS:
-            self.recv_weathers(client_sock)
+            if action == SEND_WEATHERS:
+                self.recv_weathers(client_sock)
+            if action == FINISH:
+                self.protocol.send_ack(client_sock, True)
+                break
 
     
     def run(self):

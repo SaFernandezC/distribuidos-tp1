@@ -48,7 +48,7 @@ services:
       - OUTPUT_QUEUE_NAME=date_modifier
       - CANT_CONDICIONES=1
       - SELECT=city,date,prectot
-      - FILTER_0=1,int,prectot,gt,35
+      - FILTER_0=1,int,prectot,gt,30
 
   # date_modifier:
   #   container_name: date_modifier
