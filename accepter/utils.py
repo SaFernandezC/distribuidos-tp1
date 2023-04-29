@@ -15,6 +15,10 @@ def build_weather(item, city):
     item = item.split(',')
     return json.dumps({"city": city, "date": item[0], "prectot": item[1]})
 
+def build_trip(item, city):
+    item = item.split(',')
+    return json.dumps({"city": city, "date": item[0], "prectot": item[1]})
+
 def send(queue, data, city, builder):
     for item in data:
         queue.send(builder(item, city))
@@ -26,6 +30,7 @@ def send_eof(queue, batch):
 def push_data(batchs_queue):
     logging.info(f'Worker: push data')
     weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
+    trips_queue = Queue(exchange_name='trips', exchange_type='fanout')
 
     while True:
         batch = batchs_queue.get()

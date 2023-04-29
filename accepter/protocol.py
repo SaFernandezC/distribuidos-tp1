@@ -73,6 +73,14 @@ class Protocol:
             return batch
         return {"type": "weathers", "city": batch["city"], "data": batch["data"]}
 
+    def recv_trips(self, skt):
+        batch = json.loads(self._recv_chunk(skt))
+        if "eof" in batch:
+            return batch
+        return {"type": "trips", "city": batch["city"], "data": batch["data"]}
+
+    def recv_data(self, skt):
+        return self._recv_chunk(skt)
 
     def recv_action(self, skt):
         return skt.recv_msg(self.cant_bytes_action).decode()

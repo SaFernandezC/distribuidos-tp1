@@ -11,6 +11,7 @@ docker-image:
 	docker build -f ./joiner/Dockerfile -t "joiner:latest" .
 	docker build -f ./date_modifier/Dockerfile -t "date_modifier:latest" .
 	docker build -f ./groupby/Dockerfile -t "groupby:latest" .
+	docker build -f ./parser/Dockerfile -t "parser:latest" .
 .PHONY: docker-image
 
 docker-compose-up: docker-image

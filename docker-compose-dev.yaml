@@ -27,6 +27,19 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
 
+  parser:
+    container_name: parser
+    image: parser:latest
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    links: 
+      - rabbitmq
+    networks:
+      - testing_net
+    environment:
+      - PYTHONUNBUFFERED=1
+
   prectot_filter:
     container_name: prectot_filter
     image: filter:latest

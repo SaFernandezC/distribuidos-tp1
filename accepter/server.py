@@ -11,6 +11,7 @@ SEND_WEATHERS = 'W'
 SEND_STATIONS = 'S'
 SEND_TRIPS = 'T'
 FINISH = 'F'
+SEND_DATA = 'D'
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -31,6 +32,7 @@ class Server:
         for worker in self._workers:
             worker.start()
         # self.weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
+        self.queue = Queue(queue_name="raw_data")
 
 
     def recv_weathers(self, client_sock):
@@ -38,17 +40,36 @@ class Server:
         data = self.protocol.recv_weathers(client_sock)
         self.batchs_queue.put(data)
         self.protocol.send_ack(client_sock, True)
+    
+    def recv_trips(self, client_sock):
+        logging.info(f'action: receiving trips')
+        data = self.protocol.recv_trips(client_sock)
+        self.batchs_queue.put(data)
+        self.protocol.send_ack(client_sock, True)
 
+    def recv_data(self, client_sock):
+        logging.info(f'action: receiving data')
+        data = self.protocol.recv_data(client_sock)
+        self.queue.send(body=data)
+        self.protocol.send_ack(client_sock, True)
 
     def handle_con(self, client_sock):
         while True:
             action = self.protocol.recv_action(client_sock)
             
-            if action == SEND_WEATHERS:
-                self.recv_weathers(client_sock)
-            if action == FINISH:
+            if action == SEND_DATA:
+                self.recv_data(client_sock)
+            elif action == FINISH:
                 self.protocol.send_ack(client_sock, True)
                 break
+
+            # if action == SEND_WEATHERS:
+            #     self.recv_weathers(client_sock)
+            # if action == SEND_TRIPS:
+            #     self.recv_trips(client_sock)
+            # if action == FINISH:
+            #     self.protocol.send_ack(client_sock, True)
+            #     break
 
     
     def run(self):
