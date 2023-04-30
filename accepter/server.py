@@ -48,7 +48,7 @@ class Server:
         self.protocol.send_ack(client_sock, True)
 
     def recv_data(self, client_sock):
-        logging.info(f'action: receiving data')
+        logging.debug(f'action: receiving data')
         data = self.protocol.recv_data(client_sock)
         self.queue.send(body=data)
         self.protocol.send_ack(client_sock, True)
@@ -62,14 +62,6 @@ class Server:
             elif action == FINISH:
                 self.protocol.send_ack(client_sock, True)
                 break
-
-            # if action == SEND_WEATHERS:
-            #     self.recv_weathers(client_sock)
-            # if action == SEND_TRIPS:
-            #     self.recv_trips(client_sock)
-            # if action == FINISH:
-            #     self.protocol.send_ack(client_sock, True)
-            #     break
 
     
     def run(self):

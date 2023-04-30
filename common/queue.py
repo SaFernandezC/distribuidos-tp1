@@ -4,7 +4,6 @@ import pika
 class Queue:
     def __init__(self, queue_name='', exchange_name='', bind=False, conn=None, exchange_type='', routing_key=''):
         # if not conn:
-        time.sleep(15)
         self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
         self.channel = self.connection.channel()
         # else:

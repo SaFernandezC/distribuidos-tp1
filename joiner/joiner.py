@@ -7,18 +7,24 @@ import time
 
 load_dotenv()
 
-INPUT_EXCHANGE = os.getenv('INPUT_EXCHANGE')
-INPUT_EXCHANGE_TYPE = os.getenv('INPUT_EXCHANGE_TYPE')
-INPUT_BIND = os.getenv('INPUT_BIND')
+INPUT_EXCHANGE_1 = os.getenv('INPUT_EXCHANGE_1')
+INPUT_EXCHANGE_TYPE_1 = os.getenv('INPUT_EXCHANGE_TYPE_1')
+INPUT_BIND_1 = True if os.getenv('INPUT_BIND_1') == "True" else False
+
+INPUT_QUEUE_NAME_2 = os.getenv('INPUT_QUEUE_NAME_2')
+
 
 OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME')
 # OUTPUT_EXCHANGE_TYPE = os.getenv('OUTPUT_EXCHANGE_TYPE')
 
 PRIMARY_KEY = os.getenv('PRIMARY_KEY')
 PRIMARY_KEY_2 = os.getenv('PRIMARY_KEY_2')
-SELECT = os.getenv('SELECT','')
+SELECT = os.getenv('SELECT', None)
+
+# NEEDED_EOF_1 = int(os.getenv('NEEDED_EOF_1', 1))
 
 side_table = {}
+# eof_counter_1 = 0
 
 def parse_key(key):
     splitted = key.split(',')
@@ -34,8 +40,7 @@ def add_item_test(key, item):
     side_table[tuple(values)] = item
 
 def select(fields, row):
-    if fields[0] == '':
-        return row
+    if not fields: return row
     return {key: row[key] for key in fields}
 
 def callback_queue1(ch, method, properties, body, args):
@@ -44,8 +49,8 @@ def callback_queue1(ch, method, properties, body, args):
         print("Recibo EOF -> Side table: ", side_table)
         args[1].close()
         return
-
-    add_item_test(args[0], line)
+    else:
+        add_item_test(args[0], line)
 
 
 def join(key, item):
@@ -60,29 +65,30 @@ def join(key, item):
 
 def callback_queue2(ch, method, properties, body, args):
     line = json.loads(body.decode())
+    if "eof" in line:
+        args[2].send(body=body)
+        return
     joined, res = join(args[0], line)
 
     if joined:
         body=json.dumps(select(args[1], res))
         args[2].send(body=body)
-        print(select(args[1], res))
+        # print(select(args[1], res))
 
 
 
 def main():
     # Tomo las variables de entorno
-    fields_to_select = SELECT.split(',')
-
-    bind = True
-    if INPUT_BIND == "True": bind == True 
-    else: bind == False
+    if SELECT:
+        fields_to_select = SELECT.split(',')
+    else: fields_to_select = None
 
     key_1 = parse_key(PRIMARY_KEY)
     key_2 = parse_key(PRIMARY_KEY_2)
 
 
-    input_queue1 = Queue(exchange_name=INPUT_EXCHANGE, bind=bind, exchange_type=INPUT_EXCHANGE_TYPE)
-    input_queue2 = Queue(queue_name='trips_1')
+    input_queue1 = Queue(exchange_name=INPUT_EXCHANGE_1, bind=INPUT_BIND_1, exchange_type=INPUT_EXCHANGE_TYPE_1)
+    input_queue2 = Queue(queue_name=INPUT_QUEUE_NAME_2)
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
     on_message_callback = functools.partial(callback_queue1, args=(key_1, input_queue1))

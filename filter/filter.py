@@ -1,23 +1,34 @@
 import os
 from common.queue import Queue
 from dotenv import load_dotenv
-from utils import compare
+from utils import compare, apply_operator
 import json
 import functools
 import time
 
 load_dotenv()
 
-CANTIDAD = os.getenv('CANT_CONDICIONES')
-SELECT = os.getenv('SELECT')
+CANTIDAD = os.getenv('CANT_CONDICIONES', 0)
+SELECT = os.getenv('SELECT', None)
+OPERATORS = os.getenv('OPERATORS', None)
+
 INPUT_QUEUE = os.getenv('INPUT_QUEUE', '')
 INPUT_EXCHANGE = os.getenv('INPUT_EXCHANGE', '')
 INPUT_EXCHANGE_TYPE = os.getenv('INPUT_EXCHANGE_TYPE', '')
-INPUT_BIND = os.getenv('INPUT_BIND', '')
+INPUT_BIND = True if os.getenv('INPUT_BIND') == "True" else False
 
 OUTPUT_EXCHANGE = os.getenv('OUTPUT_EXCHANGE', '')
 OUTPUT_EXCHANGE_TYPE = os.getenv('OUTPUT_EXCHANGE_TYPE', '')
 OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME', '')
+
+SHOW_LOGS =  True if os.getenv("SHOW_LOGS") == "True" else False
+
+SIN_FILTROS = 0
+SIN_SELECCIONES = 0
+
+def printer(msg):
+    if SHOW_LOGS:
+        print(msg)
 
 def filtrar_integer(filtro, data):
     field = filtro[2]
@@ -36,9 +47,18 @@ def filtrar(filtro, data):
 
 
 def select(fields, row):
+    if not fields: return row
     return {key: row[key] for key in fields}
 
+def apply_logic_operator(results, operators):
+    size = len(results)
+    if size == 1:
+        return results[0]
+    
+    for i in range(len(operators)):
+        results[i+1] = apply_operator(operators[i], results[i], results[i+1])
 
+    return results[i+1]
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
@@ -47,26 +67,39 @@ def callback(ch, method, properties, body, args):
         args[2].send(body=body)
         print("Recibo EOF -> Dejo de recibir mensajes")
         return
+    
+    # filtered = False
+    # args[4] -> operators
+    filtered = True
+    filter_results = []
+    if args[3] != SIN_FILTROS:
+        for filtro in args[1]:
+            filter_results.append(filtrar(filtro, line))
 
-    filtered = filtrar(args[1][0], line)
+        filtered = apply_logic_operator(filter_results, args[4])
+
     if filtered:
         body=json.dumps(select(args[0], line))
-        print(select(args[0], line))
+        printer(select(args[0], line))
         args[2].send(body=body)
 
 def main():
     # Tomo las variables de entorno
-    fields_to_select = SELECT.split(',')
+    if SELECT:
+        fields_to_select = SELECT.split(',')
+    else: fields_to_select = None
+
+
     filters = []
-    for i in range(int(CANTIDAD)):
+    cantidad_filtros = int(CANTIDAD)
+    for i in range(cantidad_filtros):
         filters.append(os.getenv('FILTER_'+str(i)).split(','))
     
+    if OPERATORS and cantidad_filtros > 1:
+        operators = OPERATORS.split(',')
+    else: operators = None
 
-    bind = True
-    if INPUT_BIND == "True": bind == True 
-    else: bind == False
-
-    input_queue = Queue(queue_name=INPUT_QUEUE, exchange_name=INPUT_EXCHANGE, bind=True, exchange_type=INPUT_EXCHANGE_TYPE)
+    input_queue = Queue(queue_name=INPUT_QUEUE, exchange_name=INPUT_EXCHANGE, bind=INPUT_BIND, exchange_type=INPUT_EXCHANGE_TYPE)
 
     if OUTPUT_EXCHANGE_TYPE == 'fanout':
         output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
@@ -75,10 +108,8 @@ def main():
 
 
     print(' Waiting for messages. To exit press CTRL+C')
-    on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue))
+    on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators))
     input_queue.recv(callback=on_message_callback)
-
-    return 0
 
 
 if __name__ == "__main__":

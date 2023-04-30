@@ -4,7 +4,7 @@ from configparser import ConfigParser
 import logging
 import os
 import functools
-from utils import send, handle_eof, parse_weathers
+from utils import send, handle_eof, parse_weathers, parse_trips, parse_stations
 
 
 def initialize_config():
@@ -36,18 +36,18 @@ def initialize_log(logging_level):
 
 
 def callback(ch, method, properties, body, args):
-
+    logging.info("Action: Ready to receive messages")
     batch = json.loads(body.decode())
     if "eof" in batch:
         handle_eof(batch, args[0], args[1], args[2])
         return
 
     if batch["type"] == "weathers":
-        send(args[0], batch['data'], batch['city'], parse_weathers)
+        send(args[0], batch['city'], batch['data'], parse_weathers)
     elif batch["type"] == "trips":
-        return 0
+        send(args[1], batch['city'], batch['data'], parse_trips)
     else: # Stations
-        return 0
+        send(args[2], batch['city'], batch['data'], parse_stations)
 
 def main():
     config_params = initialize_config()
@@ -58,10 +58,11 @@ def main():
 
     input_queue = Queue(queue_name="raw_data")
     weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
-    # trips_queue = Queue(queue_name="raw_data")
+    
+    trips_queue = Queue(exchange_name="trips", exchange_type='fanout')
     # stations_queue = Queue(queue_name="raw_data")
 
-    on_message_callback = functools.partial(callback, args=(weathers_queue, "b", "c"))
+    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, "c"))
     input_queue.recv(callback=on_message_callback)
     
 if __name__ == '__main__':

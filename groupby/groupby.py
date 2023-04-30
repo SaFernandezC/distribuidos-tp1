@@ -60,7 +60,7 @@ def callback(ch, method, properties, body, args):
         return
 
     group(args[0], line, args[1])
-    print("Group table: ", group_table)
+    # print("Group table: ", group_table)
 
 def define_agg():
     if AGG == 'avg':

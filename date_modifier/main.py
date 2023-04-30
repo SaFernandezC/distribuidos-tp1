@@ -62,7 +62,7 @@ def callback(ch, method, properties, body, args):
         return
 
     line['date'] = restar_dia(line['date'])
-    print(line)
+    # print(line)
     args[0].send(body=json.dumps(line))
 
 
