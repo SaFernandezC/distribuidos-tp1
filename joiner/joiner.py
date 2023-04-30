@@ -3,7 +3,7 @@ from common.queue import Queue
 from dotenv import load_dotenv
 import json
 import functools
-import time
+from utils import default, join_func_query3
 
 load_dotenv()
 
@@ -17,9 +17,11 @@ INPUT_QUEUE_NAME_2 = os.getenv('INPUT_QUEUE_NAME_2')
 OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME')
 # OUTPUT_EXCHANGE_TYPE = os.getenv('OUTPUT_EXCHANGE_TYPE')
 
-PRIMARY_KEY = os.getenv('PRIMARY_KEY')
-PRIMARY_KEY_2 = os.getenv('PRIMARY_KEY_2')
+PRIMARY_KEY = os.getenv('PRIMARY_KEY', '')
+PRIMARY_KEY_2 = os.getenv('PRIMARY_KEY_2', '')
 SELECT = os.getenv('SELECT', None)
+
+JOINER_FUNCTION = os.getenv('JOINER_FUNCTION', 'default')
 
 # NEEDED_EOF_1 = int(os.getenv('NEEDED_EOF_1', 1))
 
@@ -43,6 +45,7 @@ def select(fields, row):
     if not fields: return row
     return {key: row[key] for key in fields}
 
+
 def callback_queue1(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
@@ -54,20 +57,24 @@ def callback_queue1(ch, method, properties, body, args):
 
 
 def join(key, item):
-    values = []
-    for _i in key:
-        values.append(item[_i])
+    function = eval(JOINER_FUNCTION)
+    return function(key, item, side_table)
+    # values = []
+    # for _i in key:
+    #     values.append(item[_i])
 
-    if tuple(values) in side_table:
-        return True, {**item,**side_table[tuple(values)]}
+    # if tuple(values) in side_table:
+    #     return True, {**item,**side_table[tuple(values)]}
 
-    return False, {}
+    # return False, {}
+
 
 def callback_queue2(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
         args[2].send(body=body)
         return
+
     joined, res = join(args[0], line)
 
     if joined:

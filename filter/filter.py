@@ -37,7 +37,10 @@ def filtrar_integer(filtro, data):
     return compare(op, float(data[field]), left)
 
 def filtrar_string(filtro, data):
-    return 0
+    field = filtro[2]
+    op = filtro[3]
+    left = filtro[4]
+    return compare(op, data[field], left)
 
 def filtrar(filtro, data):
     if filtro[1] == 'int':
@@ -67,9 +70,7 @@ def callback(ch, method, properties, body, args):
         args[2].send(body=body)
         print("Recibo EOF -> Dejo de recibir mensajes")
         return
-    
-    # filtered = False
-    # args[4] -> operators
+
     filtered = True
     filter_results = []
     if args[3] != SIN_FILTROS:
@@ -77,7 +78,7 @@ def callback(ch, method, properties, body, args):
             filter_results.append(filtrar(filtro, line))
 
         filtered = apply_logic_operator(filter_results, args[4])
-
+        
     if filtered:
         body=json.dumps(select(args[0], line))
         printer(select(args[0], line))

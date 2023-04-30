@@ -12,6 +12,7 @@ docker-image:
 	docker build -f ./date_modifier/Dockerfile -t "date_modifier:latest" .
 	docker build -f ./groupby/Dockerfile -t "groupby:latest" .
 	docker build -f ./parser/Dockerfile -t "parser:latest" .
+	docker build -f ./distance_calculator/Dockerfile -t "distance_calculator:latest" .
 .PHONY: docker-image
 
 docker-compose-up: docker-image

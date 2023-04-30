@@ -13,11 +13,19 @@ def parse_trips(item, city):
         "end_date": item[2].split(' ')[0], # Viene con tiempo, no lo quiero
         "end_station_code": item[3],
         "duration_sec": float(item[4]) if float(item[4]) >= 0 else 0,
-        "yearid": item[-1],
+        "yearid": item[-1]
     })
 
 def parse_stations(item, city):
-    return 0
+    item = item.split(',')
+    return json.dumps({
+        "city": city,
+        "code": item[0],
+        "name": item[1],
+        "latitude": float(item[2]),
+        "longitude": float(item[3]),
+        "yearid": item[-1],
+    })
 
 def send_eof(queue, msg):
     queue.send(json.dumps(msg))

@@ -58,11 +58,10 @@ def main():
 
     input_queue = Queue(queue_name="raw_data")
     weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
-    
     trips_queue = Queue(exchange_name="trips", exchange_type='fanout')
-    # stations_queue = Queue(queue_name="raw_data")
+    stations_queue = Queue(exchange_name="stations", exchange_type='fanout')
 
-    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, "c"))
+    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue))
     input_queue.recv(callback=on_message_callback)
     
 if __name__ == '__main__':
