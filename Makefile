@@ -13,6 +13,8 @@ docker-image:
 	docker build -f ./groupby/Dockerfile -t "groupby:latest" .
 	docker build -f ./parser/Dockerfile -t "parser:latest" .
 	docker build -f ./distance_calculator/Dockerfile -t "distance_calculator:latest" .
+	docker build -f ./status_controller/Dockerfile -t "status_controller:latest" .
+	docker build -f ./eof_manager/Dockerfile -t "eof_manager:latest" .
 .PHONY: docker-image
 
 docker-compose-up: docker-image

@@ -35,19 +35,19 @@ def initialize_log(logging_level):
     )
 
 
+# args[3] = eof_manager
 def callback(ch, method, properties, body, args):
-    logging.info("Action: Ready to receive messages")
     batch = json.loads(body.decode())
     if "eof" in batch:
-        handle_eof(batch, args[0], args[1], args[2])
-        return
+        handle_eof(batch, args[0], args[1], args[2], args[3])
+    else:
 
-    if batch["type"] == "weathers":
-        send(args[0], batch['city'], batch['data'], parse_weathers)
-    elif batch["type"] == "trips":
-        send(args[1], batch['city'], batch['data'], parse_trips)
-    else: # Stations
-        send(args[2], batch['city'], batch['data'], parse_stations)
+        if batch["type"] == "weathers":
+            send(args[0], batch['city'], batch['data'], parse_weathers)
+        elif batch["type"] == "trips":
+            send(args[1], batch['city'], batch['data'], parse_trips)
+        else: # Stations
+            send(args[2], batch['city'], batch['data'], parse_stations)
 
 def main():
     config_params = initialize_config()
@@ -60,8 +60,10 @@ def main():
     weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
     trips_queue = Queue(exchange_name="trips", exchange_type='fanout')
     stations_queue = Queue(exchange_name="stations", exchange_type='fanout')
+    eof_manager = Queue(queue_name="eof_manager")
 
-    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue))
+
+    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue, eof_manager))
     input_queue.recv(callback=on_message_callback)
     
 if __name__ == '__main__':

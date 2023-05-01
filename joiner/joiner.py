@@ -49,7 +49,7 @@ def select(fields, row):
 def callback_queue1(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        print("Recibo EOF -> Side table: ", side_table)
+        # print("Recibo EOF -> Side table: ", side_table)
         args[1].close()
         return
     else:

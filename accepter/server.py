@@ -4,14 +4,10 @@ from socket_wrapper import Socket
 from protocol import Protocol
 import multiprocessing
 from common.queue import Queue
-from utils import push_data
 
-WORKERS = 1
-SEND_WEATHERS = 'W'
-SEND_STATIONS = 'S'
-SEND_TRIPS = 'T'
 FINISH = 'F'
 SEND_DATA = 'D'
+SEND_EOF = 'E'
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -23,29 +19,7 @@ class Server:
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.protocol = Protocol()
-
-        self.batchs_queue = multiprocessing.Queue()
-        self._workers = [multiprocessing.Process(target=push_data,
-                                                 args=(self.batchs_queue,))
-                                                 for i in range(WORKERS)]
-                                                 
-        for worker in self._workers:
-            worker.start()
-        # self.weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
         self.queue = Queue(queue_name="raw_data")
-
-
-    def recv_weathers(self, client_sock):
-        logging.info(f'action: receiving weathers')
-        data = self.protocol.recv_weathers(client_sock)
-        self.batchs_queue.put(data)
-        self.protocol.send_ack(client_sock, True)
-    
-    def recv_trips(self, client_sock):
-        logging.info(f'action: receiving trips')
-        data = self.protocol.recv_trips(client_sock)
-        self.batchs_queue.put(data)
-        self.protocol.send_ack(client_sock, True)
 
     def recv_data(self, client_sock):
         logging.debug(f'action: receiving data')
@@ -53,12 +27,19 @@ class Server:
         self.queue.send(body=data)
         self.protocol.send_ack(client_sock, True)
 
+    def recv_eof(self, client_sock):  # TODO: ES IGUAL A LA FUNCTION DE ARRIBA 
+        logging.debug(f'action: receiving eof')
+        data = self.protocol.recv_data(client_sock)
+        self.queue.send(body=data)
+        self.protocol.send_ack(client_sock, True)
+
     def handle_con(self, client_sock):
         while True:
             action = self.protocol.recv_action(client_sock)
-            
             if action == SEND_DATA:
                 self.recv_data(client_sock)
+            elif action == SEND_EOF:
+                self.recv_eof(client_sock)
             elif action == FINISH:
                 self.protocol.send_ack(client_sock, True)
                 break

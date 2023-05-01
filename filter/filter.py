@@ -26,6 +26,7 @@ SHOW_LOGS =  True if os.getenv("SHOW_LOGS") == "True" else False
 SIN_FILTROS = 0
 SIN_SELECCIONES = 0
 
+
 def printer(msg):
     if SHOW_LOGS:
         print(msg)
@@ -48,7 +49,6 @@ def filtrar(filtro, data):
     else:
         return filtrar_string(filtro, data)
 
-
 def select(fields, row):
     if not fields: return row
     return {key: row[key] for key in fields}
@@ -63,12 +63,21 @@ def apply_logic_operator(results, operators):
 
     return results[i+1]
 
+
+# def send_eof(queue, msg):
+#     for i in range(EOF_TO_SEND):
+#         queue.send(body=msg)
+#     queue.close()
+def send_eof(eof_manager):
+    eof_manager.send(body=json.dumps({"type":"work_queue"}))
+
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
-
     if "eof" in line:
-        args[2].send(body=body)
-        print("Recibo EOF -> Dejo de recibir mensajes")
+        print("Recibi EOF, dejo de escuchar") #Tengo que tener mi propia cola
+        args[5].close()
+        # send_eof(args[6])
+        # send_eof(args[2], body)
         return
 
     filtered = True
@@ -100,6 +109,7 @@ def main():
         operators = OPERATORS.split(',')
     else: operators = None
 
+    eof_manager = Queue(queue_name="eof_manager")
     input_queue = Queue(queue_name=INPUT_QUEUE, exchange_name=INPUT_EXCHANGE, bind=INPUT_BIND, exchange_type=INPUT_EXCHANGE_TYPE)
 
     if OUTPUT_EXCHANGE_TYPE == 'fanout':
@@ -109,7 +119,7 @@ def main():
 
 
     print(' Waiting for messages. To exit press CTRL+C')
-    on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators))
+    on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators, input_queue, eof_manager))
     input_queue.recv(callback=on_message_callback)
 
 

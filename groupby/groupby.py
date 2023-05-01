@@ -7,6 +7,7 @@ from utils import default, find_dup_trips_year, find_stations_query_3
 
 load_dotenv()
 
+QUERY = os.getenv('QUERY')
 INPUT_QUEUE_NAME = os.getenv('INPUT_QUEUE_NAME')
 OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME')
 PRIMARY_KEY = os.getenv('PRIMARY_KEY')
@@ -60,7 +61,7 @@ def callback(ch, method, properties, body, args):
     # print(f"[x] Received {json.loads(body.decode())}")
     line = json.loads(body.decode())
     if "eof" in line:
-        send_data("asd")
+        send_data(args[2])
         # print("Recibo EOF -> Side table: ", group_table)
         return
 
@@ -77,7 +78,8 @@ def define_agg():
 def send_data(queue):
     function = eval(SEND_DATA_FUNCTION)
     filtered = function(group_table)
-    print(filtered)
+    queue.send(body=json.dumps({"query": QUERY, "results": filtered}))
+    # print(json.dumps({"query": QUERY, "results": filtered}))
 
 def main():
     key_1 = parse_key(PRIMARY_KEY)
@@ -87,7 +89,7 @@ def main():
     input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
-    on_message_callback = functools.partial(callback, args=(key_1, agg_function))
+    on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue))
     input_queue.recv(callback=on_message_callback)
 
     return 0

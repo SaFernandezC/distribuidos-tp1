@@ -57,6 +57,9 @@ class Queue:
     def close(self):
         self.channel.stop_consuming()
         self.connection.close()
+    
+    def stop_consuming(self):
+        self.channel.stop_consuming()
 
     def get_connection(self):
         return self.connection, self.channel
