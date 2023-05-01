@@ -35,7 +35,8 @@ def handle_eof(msg, weathers_queue, trips_queue, stations_queue, eof_manager):
         eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "weathers"}))
         # send_eof(weathers_queue, msg)
     elif msg["type"] == "trips":
-        send_eof(trips_queue, msg)
+        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "trips"}))
+        # send_eof(trips_queue, msg)
     else: # Stations
         send_eof(stations_queue, msg)
 

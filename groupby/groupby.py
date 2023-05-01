@@ -62,6 +62,7 @@ def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
         send_data(args[2])
+        args[3].stop_consuming()
         # print("Recibo EOF -> Side table: ", group_table)
         return
 
@@ -89,7 +90,7 @@ def main():
     input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
-    on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue))
+    on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue, input_queue))
     input_queue.recv(callback=on_message_callback)
 
     return 0

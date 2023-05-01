@@ -69,14 +69,17 @@ def apply_logic_operator(results, operators):
 #         queue.send(body=msg)
 #     queue.close()
 def send_eof(eof_manager):
-    eof_manager.send(body=json.dumps({"type":"work_queue"}))
+    if OUTPUT_EXCHANGE == '':
+        eof_manager.send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
+    else:
+        print("Caso de los filters de sations, no lo manejo aun")
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        print("Recibi EOF, dejo de escuchar") #Tengo que tener mi propia cola
-        args[5].close()
-        # send_eof(args[6])
+        # print("Recibi EOF, dejo de escuchar")
+        args[5].stop_consuming()
+        send_eof(args[6])
         # send_eof(args[2], body)
         return
 
@@ -118,7 +121,7 @@ def main():
         output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
 
-    print(' Waiting for messages. To exit press CTRL+C')
+    # print(' Waiting for messages. To exit press CTRL+C')
     on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators, input_queue, eof_manager))
     input_queue.recv(callback=on_message_callback)
 

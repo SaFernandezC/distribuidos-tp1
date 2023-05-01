@@ -15,7 +15,6 @@ INPUT_QUEUE_NAME_2 = os.getenv('INPUT_QUEUE_NAME_2')
 
 
 OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME')
-# OUTPUT_EXCHANGE_TYPE = os.getenv('OUTPUT_EXCHANGE_TYPE')
 
 PRIMARY_KEY = os.getenv('PRIMARY_KEY', '')
 PRIMARY_KEY_2 = os.getenv('PRIMARY_KEY_2', '')
@@ -23,10 +22,7 @@ SELECT = os.getenv('SELECT', None)
 
 JOINER_FUNCTION = os.getenv('JOINER_FUNCTION', 'default')
 
-# NEEDED_EOF_1 = int(os.getenv('NEEDED_EOF_1', 1))
-
 side_table = {}
-# eof_counter_1 = 0
 
 def parse_key(key):
     splitted = key.split(',')
@@ -49,7 +45,7 @@ def select(fields, row):
 def callback_queue1(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        # print("Recibo EOF -> Side table: ", side_table)
+        # print("Recibo EOF y dejo de escuchar-> Side table: ", side_table)
         args[1].close()
         return
     else:
@@ -59,20 +55,14 @@ def callback_queue1(ch, method, properties, body, args):
 def join(key, item):
     function = eval(JOINER_FUNCTION)
     return function(key, item, side_table)
-    # values = []
-    # for _i in key:
-    #     values.append(item[_i])
-
-    # if tuple(values) in side_table:
-    #     return True, {**item,**side_table[tuple(values)]}
-
-    # return False, {}
 
 
 def callback_queue2(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        args[2].send(body=body)
+        # print("Recibo EOF -> Dejo de de escuchar")
+        args[3].send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
+        # args[2].send(body=body)
         return
 
     joined, res = join(args[0], line)
@@ -81,7 +71,6 @@ def callback_queue2(ch, method, properties, body, args):
         body=json.dumps(select(args[1], res))
         args[2].send(body=body)
         # print(select(args[1], res))
-
 
 
 def main():
@@ -97,11 +86,12 @@ def main():
     input_queue1 = Queue(exchange_name=INPUT_EXCHANGE_1, bind=INPUT_BIND_1, exchange_type=INPUT_EXCHANGE_TYPE_1)
     input_queue2 = Queue(queue_name=INPUT_QUEUE_NAME_2)
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
+    eof_manager = Queue(queue_name="eof_manager")
 
     on_message_callback = functools.partial(callback_queue1, args=(key_1, input_queue1))
     input_queue1.recv(callback=on_message_callback)
 
-    on_message_callback2 = functools.partial(callback_queue2, args=(key_2, fields_to_select, output_queue))
+    on_message_callback2 = functools.partial(callback_queue2, args=(key_2, fields_to_select, output_queue, eof_manager))
     input_queue2.recv(callback=on_message_callback2)
 
     return 0
