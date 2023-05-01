@@ -13,11 +13,12 @@ exchanges = {
                 "prectot_filter":{"listening": 2}
             }
         },
+
         "trips":{
-            "writing":1,
+            "writing":2,
             "eof_received": 0,
             "queues_binded":{
-                "filter_trips_query1":{"listening": 1}
+                "filter_trips_query1":{"listening": 2}
             }
         },
 
@@ -30,7 +31,7 @@ exchanges = {
 
 work_queues = {
         "date_modifier": {"writing":2, "listening":2, "eof_received":0},
-        "joiner_query_1": {"writing":1, "listening":1, "eof_received":0},
+        "joiner_query_1": {"writing":2, "listening":2, "eof_received":0},
         "groupby_query_1": {"writing":1, "listening":1, "eof_received":0}
     }
 
@@ -52,7 +53,6 @@ def exchange_with_queues(line):
             for i in range(listening):
                 temp.send(EOF_MSG)
             temp.close()
-
 
 def exchange_without_queues(line):
     exchange = exchanges[line["exchange"]]

@@ -2,14 +2,9 @@ import time
 import pika
 
 class Queue:
-    def __init__(self, queue_name='', exchange_name='', bind=False, conn=None, exchange_type='', routing_key=''):
-        # if not conn:
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+    def __init__(self, queue_name='', exchange_name='', bind=False, conn=None, exchange_type='', routing_key=None):
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=1800))
         self.channel = self.connection.channel()
-        # else:
-        #     self.connection = conn.connection
-        #     self.channel = conn.channel
-
         self.queue_name = queue_name
         self.exchange_name = exchange_name
         self._declare(bind, exchange_type, routing_key)
@@ -20,9 +15,10 @@ class Queue:
 
         if self.queue_name != '':
             self.channel.queue_declare(queue=self.queue_name, durable=True)
-            # Caso especial para poder escalar
-            if bind:
+            if bind and not routing_key:
                 self.channel.queue_bind(exchange=self.exchange_name, queue=self.queue_name)
+            elif bind and routing_key:
+                self.channel.queue_bind(exchange=self.exchange_name, queue=self.queue_name, routing_key=routing_key)
 
         if self.queue_name == '' and bind:
             result = self.channel.queue_declare(queue='', exclusive=True)

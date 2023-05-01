@@ -6,7 +6,6 @@ import json
 SEND_WEATHERS = 'W'
 SEND_STATIONS = 'S'
 SEND_TRIPS = 'T'
-FINISH = 'F'
 ACK_OK = 0
 ACK_ERROR = 1
 
@@ -23,6 +22,7 @@ def _initialize_config():
         config_params["cant_bytes_len"] = int(os.getenv('CANT_BYTES_LEN', config["DEFAULT"]["CANT_BYTES_LEN"]))
         config_params["cant_bytes_ack"] = int(os.getenv('CANT_BYTES_ACK', config["DEFAULT"]["CANT_BYTES_ACK"]))
         config_params["cant_bytes_action"] = int(os.getenv('CANT_BYTES_ACTION', config["DEFAULT"]["CANT_BYTES_ACTION"]))
+        config_params["cant_bytes_key"] = int(os.getenv('CANT_BYTES_KEY', config["DEFAULT"]["CANT_BYTES_KEY"]))
 
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting".format(e))
@@ -38,6 +38,7 @@ class Protocol:
         self.cant_bytes_len = config_params["cant_bytes_len"]
         self.cant_bytes_ack = config_params["cant_bytes_ack"]
         self.cant_bytes_action = config_params["cant_bytes_action"]
+        self.cant_bytes_key = config_params["cant_bytes_key"]
 
     def _divide_msg(self, bet, bet_size):
         """
@@ -72,6 +73,13 @@ class Protocol:
 
     def recv_action(self, skt):
         return skt.recv_msg(self.cant_bytes_action).decode()
+    
+    def recv_key(self, skt):
+        key = skt.recv_msg(self.cant_bytes_key).decode()
+        if key == SEND_TRIPS: return "trip"
+        if key == SEND_STATIONS: return "station"
+        if key == SEND_WEATHERS: return "weather"
+
 
     def send_ack(self, skt, status):
         """
