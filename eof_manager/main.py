@@ -3,6 +3,7 @@ from common.queue import Queue
 import logging
 import os
 import functools
+import time
 
 exchanges = {
 
@@ -10,29 +11,49 @@ exchanges = {
             "writing":1,
             "eof_received": 0,
             "queues_binded": {
-                "prectot_filter":{"listening": 2}
+                "prectot_filter":{"listening": 1}
             }
         },
 
         "trips":{
-            "writing":2,
+            "writing":1,
             "eof_received": 0,
             "queues_binded":{
-                "filter_trips_query1":{"listening": 2}
+                "filter_trips_query1":{"listening": 2},
+                "filter_trips_year":{"listening":1},
+                "filter_trips_query3":{"listening":1}
+            }
+        },
+
+        "stations":{
+            "writing":1,
+            "eof_received": 0,
+            "queues_binded":{
+                "filter_stations_query2":{"listening": 1},
+                "filter_stations_query3":{"listening":1}
             }
         },
 
         "joiner_query_1":{
-            "writing":2,
+            "writing":1,
+            "eof_received": 0,
+            "queues_binded":{}
+        },
+
+        "joiner_query_2":{
+            "writing":1,
             "eof_received": 0,
             "queues_binded":{}
         },
 }
 
 work_queues = {
-        "date_modifier": {"writing":2, "listening":2, "eof_received":0},
-        "joiner_query_1": {"writing":2, "listening":2, "eof_received":0},
-        "groupby_query_1": {"writing":1, "listening":1, "eof_received":0}
+        "date_modifier": {"writing":1, "listening":2, "eof_received":0},
+        "joiner_1": {"writing":2, "listening":2, "eof_received":0},
+        "groupby_query_1": {"writing":2, "listening":1, "eof_received":0},
+
+        "joiner_query_2": {"writing":1, "listening":2, "eof_received":0},
+        "groupby_query_2": {"writing":2, "listening":1, "eof_received":0}
     }
 
 EOF_MSG = json.dumps({"eof": True})
@@ -51,6 +72,7 @@ def exchange_with_queues(line):
             listening = queue_data["listening"]
             temp = Queue(queue_name=queue_name)
             for i in range(listening):
+                print(f"ENVIO EOF A COLA {queue_name} DE EXCHANFE: ", line["exchange"])
                 temp.send(EOF_MSG)
             temp.close()
 
@@ -65,6 +87,7 @@ def exchange_without_queues(line):
     if exchange["eof_received"] == writing:
         # print("RECIBI IGUAL EOF QUE WRITING -> MANDO EOF A EXCHANGE")
         temp = Queue(exchange_name=line["exchange"], exchange_type="fanout") # En este tp solo uso fanout
+        print("ENVIO EOF A EXCHANGE SIN COLAS: ", line["exchange"])
         temp.send(EOF_MSG)
         temp.close()
 
@@ -92,9 +115,10 @@ def callback(ch, method, properties, body, args):
         if work_queues[queue]["eof_received"] == writing:
             temp = Queue(queue_name=queue)
             for i in range(listening):
+                print(f"ENVIO EOF A: {queue} donde hay {listening} listening")
                 temp.send(EOF_MSG)
-        return
-    return 0
+                # time.sleep(2)
+            temp.close()
 
 def main():
     input_queue = Queue(queue_name="eof_manager")

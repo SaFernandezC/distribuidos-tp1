@@ -43,6 +43,7 @@ def callback(ch, method, properties, body, args):
     if "eof" in batch:
         handle_eof(batch, args[0], args[1], args[2], args[3])
         args[4].stop_consuming()
+        print("RECIBO EOF ---> DEJO DE ESCUCHAR")
     else:
 
         if batch["type"] == "weathers":

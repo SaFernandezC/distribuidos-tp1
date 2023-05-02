@@ -22,8 +22,8 @@ def parse_stations(item, city):
         "city": city,
         "code": item[0],
         "name": item[1],
-        "latitude": float(item[2]),
-        "longitude": float(item[3]),
+        "latitude": float(item[2]) if type(item[2]) != str else 0,
+        "longitude": float(item[3]) if type(item[3]) != str else 0,
         "yearid": item[-1],
     })
 

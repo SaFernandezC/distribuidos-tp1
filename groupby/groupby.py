@@ -61,9 +61,9 @@ def callback(ch, method, properties, body, args):
     # print(f"[x] Received {json.loads(body.decode())}")
     line = json.loads(body.decode())
     if "eof" in line:
+        print("RECIBO EOF ---> DEJO DE ESCUCHAR y ENVIO DATA")
         send_data(args[2])
         args[3].stop_consuming()
-        # print("Recibo EOF -> Side table: ", group_table)
         return
 
     group(args[0], line, args[1])

@@ -72,15 +72,14 @@ def send_eof(eof_manager):
     if OUTPUT_EXCHANGE == '':
         eof_manager.send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
     else:
-        print("Caso de los filters de sations, no lo manejo aun")
+        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        # print("Recibi EOF, dejo de escuchar")
+        print("RECIBO EOF ---> DEJO DE ESCUCHAR")
         args[5].stop_consuming()
         send_eof(args[6])
-        # send_eof(args[2], body)
         return
 
     filtered = True

@@ -56,9 +56,8 @@ def es_bisiesto(anio):
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
+    print(line)
     if "eof" in line:
-        # args[0].send(body=body)
-        # print("Recibi EOF, dejo de escuchar")
         args[1].stop_consuming()
         args[2].send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
         return
