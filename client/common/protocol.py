@@ -6,8 +6,13 @@ import json
 SEND_WEATHERS = 'W'
 SEND_STATIONS = 'S'
 SEND_TRIPS = 'T'
+
+SEND_FINISH = 'F'
+SEND_DATA = 'D'
+SEND_EOF = 'E'
 ACK_OK = 0
 ACK_ERROR = 1
+ASK_DATA = 'A'
 
 def _initialize_config():
     config = ConfigParser(os.environ)
@@ -22,7 +27,6 @@ def _initialize_config():
         config_params["cant_bytes_len"] = int(os.getenv('CANT_BYTES_LEN', config["DEFAULT"]["CANT_BYTES_LEN"]))
         config_params["cant_bytes_ack"] = int(os.getenv('CANT_BYTES_ACK', config["DEFAULT"]["CANT_BYTES_ACK"]))
         config_params["cant_bytes_action"] = int(os.getenv('CANT_BYTES_ACTION', config["DEFAULT"]["CANT_BYTES_ACTION"]))
-        config_params["cant_bytes_key"] = int(os.getenv('CANT_BYTES_KEY', config["DEFAULT"]["CANT_BYTES_KEY"]))
 
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting".format(e))
@@ -38,7 +42,6 @@ class Protocol:
         self.cant_bytes_len = config_params["cant_bytes_len"]
         self.cant_bytes_ack = config_params["cant_bytes_ack"]
         self.cant_bytes_action = config_params["cant_bytes_action"]
-        self.cant_bytes_key = config_params["cant_bytes_key"]
 
     def _divide_msg(self, bet, bet_size):
         """
@@ -58,9 +61,10 @@ class Protocol:
         exceed size limit (8192b)
         """
         skt.send_msg(chunk_size.to_bytes(self.cant_bytes_len, byteorder='big'))
+
         divided_chunk = self._divide_msg(chunk, chunk_size)
         for part in divided_chunk:
-            skt.send_msg(part)    
+            skt.send_msg(part)        
 
     def _recv_chunk(self, skt):
         batch_size_bytes = skt.recv_msg(self.cant_bytes_len)
@@ -68,32 +72,65 @@ class Protocol:
         batch = skt.recv_msg(batch_size).decode()
         return batch
 
-    def recv_data(self, skt):
-        return self._recv_chunk(skt)
+    def send_weather(self, skt, city, data):
+        skt.send_msg(bytes(SEND_DATA, 'utf-8'))
+        skt.send_msg(bytes(SEND_WEATHERS, 'utf-8'))
+        batch = bytes(json.dumps({"type": "weathers", "city": city, "data": data}), 'utf-8')
+        batch_size = len(batch)
+        self._send_chunk(skt, batch, batch_size)
+        logging.debug(f'action: weather batch sended | result: success | city: {city} | msg_len: {batch_size}')
 
-    def recv_action(self, skt):
-        return skt.recv_msg(self.cant_bytes_action).decode()
-    
-    def recv_key(self, skt):
-        key = skt.recv_msg(self.cant_bytes_key).decode()
-        if key == SEND_TRIPS: return "trip"
-        if key == SEND_STATIONS: return "station"
-        if key == SEND_WEATHERS: return "weather"
+    def send_weather_eof(self, skt):
+        skt.send_msg(bytes(SEND_EOF, 'utf-8'))
+        skt.send_msg(bytes(SEND_WEATHERS, 'utf-8'))
+        self.send_eof(skt, "weathers")
+        logging.debug(f'action: weather eof sended | result: success')
+
+    def send_station(self, skt, city, data):
+        skt.send_msg(bytes(SEND_DATA, 'utf-8'))
+        skt.send_msg(bytes(SEND_STATIONS, 'utf-8'))
+        batch = bytes(json.dumps({"type": "stations", "city": city, "data": data}), 'utf-8')
+        batch_size = len(batch)
+        self._send_chunk(skt, batch, batch_size)
+        logging.debug(f'action: stations batch sended | result: success | city: {city} | msg_len: {batch_size}')
+
+    def send_stations_eof(self, skt):
+        skt.send_msg(bytes(SEND_EOF, 'utf-8'))
+        skt.send_msg(bytes(SEND_STATIONS, 'utf-8'))
+        self.send_eof(skt, "stations")
+        logging.debug(f'action: stations eof sended | result: success')
+
+    def send_trip(self, skt, city, data):
+        skt.send_msg(bytes(SEND_DATA, 'utf-8'))
+        skt.send_msg(bytes(SEND_TRIPS, 'utf-8'))
+        batch = bytes(json.dumps({"type": "trips", "city": city, "data": data}), 'utf-8')
+        batch_size = len(batch)
+        self._send_chunk(skt, batch, batch_size)
+        logging.debug(f'action: trips batch sended | result: success | city: {city} | msg_len: {batch_size}')
+
+    def send_trips_eof(self, skt):
+        skt.send_msg(bytes(SEND_EOF, 'utf-8'))
+        skt.send_msg(bytes(SEND_TRIPS, 'utf-8'))
+        self.send_eof(skt, "trips")
+        logging.debug(f'action: trips eof sended | result: success')
+
+    def send_eof(self, skt, type):        
+        batch = bytes(json.dumps({"type":type, "eof": True}), 'utf-8')
+        batch_size = len(batch)
+        self._send_chunk(skt, batch, batch_size)
+        logging.debug(f'action: send eof | result: success')
+
+    def finish_sending_data(self, skt):
+        skt.send_msg(bytes(SEND_FINISH, 'utf-8'))
 
 
-    def send_result(self, skt, ready, data=""):
-        msg = bytes(json.dumps({"ready": ready, "data":data}),  'utf-8')
-        msg_size = len(msg)
-        self._send_chunk(skt, msg, msg_size)
-
-    def send_ack(self, skt, status):
-        """
-        Receives status=true for OK_ACK or status=false for ERROR
-        Sends ACK
-        """ 
-        msg = ACK_OK if status == True else ACK_ERROR
-        skt.send_msg(msg.to_bytes(self.cant_bytes_ack, byteorder='big'))
-        logging.debug(f'action: Send ack | result: success | ip: {skt.get_addr()} | msg: {status}')
+    def ask_results(self, skt):
+        skt.send_msg(bytes(ASK_DATA, 'utf-8'))
+        res = json.loads(self._recv_chunk(skt))
+        if res["ready"] == False:
+            return False, {}
+        else:
+            return True, json.loads(res["data"])
 
     def recv_ack(self, skt):
         """

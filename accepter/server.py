@@ -2,8 +2,9 @@ import logging
 import signal
 from socket_wrapper import Socket
 from protocol import Protocol
-import json
+import multiprocessing
 from common.queue import Queue
+from utils import asker
 
 FINISH = 'F'
 SEND_DATA = 'D'
@@ -11,6 +12,7 @@ SEND_EOF = 'E'
 SEND_WEATHERS = 'W'
 SEND_STATIONS = 'S'
 SEND_TRIPS = 'T'
+ASK_DATA = 'A'
 
 class Server:
     def __init__(self, port, listen_backlog, trip_parsers, weather_parsers, station_parsers):
@@ -26,8 +28,11 @@ class Server:
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.protocol = Protocol()
-        # self.queue = Queue(queue_name="raw_data")
         self.queue = Queue(exchange_name='raw_data', exchange_type='direct')
+        self.metrics_queue = Queue(queue_name="metrics")
+
+        self.results_queue = multiprocessing.Queue()
+        self.ask_results = multiprocessing.Process(target=asker, args=(self.metrics_queue, self.results_queue))
 
 
     def recv_data(self, client_sock, key):
@@ -35,7 +40,6 @@ class Server:
         data = self.protocol.recv_data(client_sock)
         self.queue.send(body=data, routing_key=key)
         self.protocol.send_ack(client_sock, True)
-
 
     def calculate_eof(self, key):
         if key == "trip": 
@@ -55,6 +59,15 @@ class Server:
         self.send_eof(data, key)
         self.protocol.send_ack(client_sock, True)
 
+    def ask_for_data(self, client_sock):
+
+        if self.results_queue.empty():
+            self.protocol.send_result(client_sock, False)
+        else:
+            data = self.results_queue.get()
+            self.protocol.send_result(client_sock, True, data)
+
+
     def handle_con(self, client_sock):
         while True:
             action = self.protocol.recv_action(client_sock)
@@ -66,14 +79,15 @@ class Server:
                 self.recv_eof(client_sock, key)
             elif action == FINISH:
                 self.protocol.send_ack(client_sock, True)
-                break
-
+            elif action == ASK_DATA:
+                self.ask_for_data(client_sock)
     
     def run(self):
         """
         Main process: starts other processes and iterate accepting new clients.
         After accepting a new client pushes it to clients queue
         """
+        self.ask_results.start()
         while self.is_alive:
             client_sock = self.__accept_new_connection()
             if client_sock:
@@ -106,6 +120,8 @@ class Server:
         """
         self.is_alive = False
         try:
+            self.ask_results.join()
+            self.metrics_queue.close()
             self._server_socket.close()
         except OSError as e:
             logging.error("action: stop server | result: fail | error: {}".format(e))
