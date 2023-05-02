@@ -78,22 +78,22 @@ def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
         print("RECIBO EOF ---> DEJO DE ESCUCHAR")
-        args[5].stop_consuming()
+        ch.stop_consuming()
         send_eof(args[6])
-        return
+    else:
+        filtered = True
+        filter_results = []
+        if args[3] != SIN_FILTROS:
+            for filtro in args[1]:
+                filter_results.append(filtrar(filtro, line))
 
-    filtered = True
-    filter_results = []
-    if args[3] != SIN_FILTROS:
-        for filtro in args[1]:
-            filter_results.append(filtrar(filtro, line))
-
-        filtered = apply_logic_operator(filter_results, args[4])
-        
-    if filtered:
-        body=json.dumps(select(args[0], line))
-        printer(select(args[0], line))
-        args[2].send(body=body)
+            filtered = apply_logic_operator(filter_results, args[4])
+            
+        if filtered:
+            body=json.dumps(select(args[0], line))
+            printer(select(args[0], line))
+            args[2].send(body=body)
+    # ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
     # Tomo las variables de entorno
@@ -122,7 +122,7 @@ def main():
 
     # print(' Waiting for messages. To exit press CTRL+C')
     on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators, input_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback)
+    input_queue.recv(callback=on_message_callback, auto_ack=True)
 
 
 if __name__ == "__main__":

@@ -17,12 +17,11 @@ def callback_queue1(ch, method, properties, body, args):
         # args[0].send(body=body) # AGREFAR EOF MANAGER ACA
         ch.stop_consuming()
         args[1].send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
-        return
     else:
         distance = haversine((line['start_latitude'], line['start_longitude']), (line['end_latitude'], line['end_longitude']))
         res = {"end_name": line["end_name"], "distance": distance}
         args[0].send(body=json.dumps(res))
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    # ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
 
@@ -31,7 +30,7 @@ def main():
     eof_manager = Queue(queue_name="eof_manager")
 
     on_message_callback = functools.partial(callback_queue1, args=(output_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=False)
+    input_queue.recv(callback=on_message_callback, auto_ack=True)
 
 
 if __name__ == "__main__":

@@ -89,12 +89,12 @@ def exchange_with_queues(line):
     # print("EOF PARCIAL :", exchange["eof_received"])
 
     if exchange["eof_received"] == writing:
-        # print("RECIBI IGUAL EOF QUE WRITING -> MANDO EOF A EXCHANGE")
+        # print(f"RECIBI IGUAL EOF QUE WRITING en {line['exchange']} -> MANDO EOF A EXCHANGE")
         for queue_name, queue_data in queues_binded.items():
             listening = queue_data["listening"]
             temp = Queue(queue_name=queue_name)
             for i in range(listening):
-                print(f"ENVIO EOF A COLA {queue_name} DE EXCHANFE: ", line["exchange"])
+                # print(f"ENVIO EOF A COLA {queue_name} DE EXCHANFE: ", line["exchange"])
                 temp.send(EOF_MSG)
             temp.close()
 

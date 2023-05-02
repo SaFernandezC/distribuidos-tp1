@@ -15,6 +15,7 @@ data = {}
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     data[line["query"]] = line["results"]
+    print(line)
 
     if len(data) == QTY_OF_QUERIES:
         args[0].send(body=json.dumps(data))
