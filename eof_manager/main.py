@@ -19,7 +19,7 @@ exchanges = {
             "writing":1,
             "eof_received": 0,
             "queues_binded":{
-                "filter_trips_query1":{"listening": 2},
+                "filter_trips_query1":{"listening": 1},
                 "filter_trips_year":{"listening":1},
                 "filter_trips_query3":{"listening":1}
             }
@@ -45,15 +45,25 @@ exchanges = {
             "eof_received": 0,
             "queues_binded":{}
         },
+
+        "joiner_query_3":{
+            "writing":1,
+            "eof_received": 0,
+            "queues_binded":{}
+        },
 }
 
 work_queues = {
-        "date_modifier": {"writing":1, "listening":2, "eof_received":0},
-        "joiner_1": {"writing":2, "listening":2, "eof_received":0},
-        "groupby_query_1": {"writing":2, "listening":1, "eof_received":0},
+        "date_modifier": {"writing":1, "listening":1, "eof_received":0},
+        "joiner_1": {"writing":1, "listening":1, "eof_received":0},
+        "groupby_query_1": {"writing":1, "listening":1, "eof_received":0},
 
-        "joiner_query_2": {"writing":1, "listening":2, "eof_received":0},
-        "groupby_query_2": {"writing":2, "listening":1, "eof_received":0}
+        "joiner_query_2": {"writing":1, "listening":1, "eof_received":0},
+        "groupby_query_2": {"writing":1, "listening":1, "eof_received":0},
+
+        "joiner_query_3": {"writing":1, "listening":1, "eof_received":0},
+        "distance_calculator": {"writing":1, "listening":1, "eof_received":0},
+        "groupby_query_3": {"writing":1, "listening":1, "eof_received":0}
     }
 
 EOF_MSG = json.dumps({"eof": True})

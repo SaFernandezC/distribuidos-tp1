@@ -22,8 +22,8 @@ def parse_stations(item, city):
         "city": city,
         "code": item[0],
         "name": item[1],
-        "latitude": float(item[2]) if type(item[2]) != str else 0,
-        "longitude": float(item[3]) if type(item[3]) != str else 0,
+        "latitude": float(item[2]) if item[2] != '' else 0,
+        "longitude": float(item[3]) if item[3] != '' else 0,
         "yearid": item[-1],
     })
 
@@ -38,7 +38,8 @@ def handle_eof(msg, weathers_queue, trips_queue, stations_queue, eof_manager):
         eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "trips"}))
         # send_eof(trips_queue, msg)
     else: # Stations
-        send_eof(stations_queue, msg)
+        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "stations"}))
+        # send_eof(stations_queue, msg)
 
 def send(queue, city, data, parser):
     for item in data:

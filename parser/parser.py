@@ -42,10 +42,9 @@ def callback(ch, method, properties, body, args):
     batch = json.loads(body.decode())
     if "eof" in batch:
         handle_eof(batch, args[0], args[1], args[2], args[3])
-        args[4].stop_consuming()
+        ch.stop_consuming()
         print("RECIBO EOF ---> DEJO DE ESCUCHAR")
     else:
-
         if batch["type"] == "weathers":
             send(args[0], batch['city'], batch['data'], parse_weathers)
         elif batch["type"] == "trips":
@@ -71,8 +70,14 @@ def main():
     eof_manager = Queue(queue_name="eof_manager")
 
 
-    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue, eof_manager, input_queue))
+    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue, eof_manager))
     input_queue.recv(callback=on_message_callback)
-    
+
+    input_queue.close() 
+    weathers_queue.close() 
+    trips_queue.close() 
+    stations_queue.close() 
+    eof_manager.close() 
+
 if __name__ == '__main__':
     main()

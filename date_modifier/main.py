@@ -56,16 +56,16 @@ def es_bisiesto(anio):
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
-    print(line)
+    # print(line)
     if "eof" in line:
-        args[1].stop_consuming()
+        ch.stop_consuming()
         args[2].send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
         return
-
-    line['date'] = restar_dia(line['date'])
-    # print(line)
-    args[0].send(body=json.dumps(line))
-
+    else:
+        line['date'] = restar_dia(line['date'])
+        # print(line)
+        args[0].send(body=json.dumps(line))
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
 
@@ -73,10 +73,12 @@ def main():
     input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
     output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
 
-    # print(' Waiting for messages. To exit press CTRL+C')
     on_message_callback = functools.partial(callback, args=(output_queue, input_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback)
+    input_queue.recv(callback=on_message_callback, auto_ack=False)
 
+    input_queue.close()
+    output_queue.close()
+    eof_manager.close()
     return 0
 
 

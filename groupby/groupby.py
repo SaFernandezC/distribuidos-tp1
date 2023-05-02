@@ -27,10 +27,10 @@ def sum():
 def avg(key, item):
     if key in group_table:
         group_table[key]['count'] = group_table[key]['count'] + 1
-        group_table[key]['sum'] = group_table[key]['sum'] + int(item[FIELD_TO_AGREGATE])
+        group_table[key]['sum'] = group_table[key]['sum'] + float(item[FIELD_TO_AGREGATE])
         group_table[key][FIELD_TO_AGREGATE] = group_table[key]['sum'] / group_table[key]['count']
     else: 
-        value = int(item[FIELD_TO_AGREGATE])
+        value = float(item[FIELD_TO_AGREGATE])
         group_table[key] = {FIELD_TO_AGREGATE:value, "count": 1, "sum": value}
 
 def count(key, item):
@@ -58,16 +58,15 @@ def group(key, item, agg_function):
 
 
 def callback(ch, method, properties, body, args):
-    # print(f"[x] Received {json.loads(body.decode())}")
     line = json.loads(body.decode())
     if "eof" in line:
         print("RECIBO EOF ---> DEJO DE ESCUCHAR y ENVIO DATA")
         send_data(args[2])
-        args[3].stop_consuming()
+        ch.stop_consuming()
         return
-
-    group(args[0], line, args[1])
-    # print("Group table: ", group_table)
+    else:
+        group(args[0], line, args[1])
+        # print("Group table: ", group_table)
 
 def define_agg():
     if AGG == 'avg':
@@ -80,19 +79,19 @@ def send_data(queue):
     function = eval(SEND_DATA_FUNCTION)
     filtered = function(group_table)
     queue.send(body=json.dumps({"query": QUERY, "results": filtered}))
-    # print(json.dumps({"query": QUERY, "results": filtered}))
 
 def main():
     key_1 = parse_key(PRIMARY_KEY)
-
     agg_function = define_agg()
 
     input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
-    on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue, input_queue))
+    on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue))
     input_queue.recv(callback=on_message_callback)
 
+    input_queue.close()
+    output_queue.close()
     return 0
 
 

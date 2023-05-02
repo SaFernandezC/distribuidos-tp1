@@ -16,39 +16,6 @@ services:
     environment:
       - RABBITMQ_LOGS=-
 
-  # producer:
-  #   container_name: producer
-  #   image: producer:latest
-  #   restart: on-failure
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   links: 
-  #     - rabbitmq
-  #   networks:
-  #     - testing_net
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #   deploy:
-  #     replicas: 1
-
-  # consumer:
-  #   # container_name: consumer
-  #   image: consumer:latest
-  #   restart: on-failure
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   links: 
-  #     - rabbitmq
-  #   networks:
-  #     - testing_net
-  #   environment:
-  #     - PYTHONUNBUFFERED=1
-  #   deploy:
-  #     replicas: 2
-
-
   eof_manager:
     container_name: eof_manager
     image: eof_manager:latest
@@ -130,119 +97,52 @@ services:
       - INPUT_QUEUE=raw_weathers
       - ROUTING_KEY=weather
 
-  prectot_filter:
-    # container_name: prectot_filter
-    image: filter:latest
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    links: 
-      - rabbitmq
-    networks:
-      - testing_net
-    environment:
-      - PYTHONUNBUFFERED=1
-      - SHOW_LOGS=False # TODO: Lo puedo hacer con el logger y diferentes niveles de log :D
-      - INPUT_EXCHANGE=weathers
-      - INPUT_EXCHANGE_TYPE=fanout
-      - INPUT_QUEUE=prectot_filter
-      - INPUT_BIND=True
-      - OUTPUT_QUEUE_NAME=date_modifier
-      - CANT_CONDICIONES=1
-      - FILTER_0=1,int,prectot,gt,30
-    deploy:
-      replicas: 1
+#--------------------------------QUERY1----------------------------#
 
-  date_modifier:
-    # container_name: date_modifier
-    image: date_modifier:latest
-    restart: on-failure
-    depends_on:
-      - prectot_filter
-    links: 
-      - rabbitmq
-    networks:
-      - testing_net
-    environment:
-      - PYTHONUNBUFFERED=1
-      - INPUT_QUEUE_NAME=date_modifier
-      - OUTPUT_EXCHANGE=joiner_query_1
-      - OUTPUT_EXCHANGE_TYPE=fanout
-    deploy:
-      replicas: 2
+  # prectot_filter:
+  #   # container_name: prectot_filter
+  #   image: filter:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   links: 
+  #     - rabbitmq
+  #   networks:
+  #     - testing_net
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - SHOW_LOGS=False # TODO: Lo puedo hacer con el logger y diferentes niveles de log :D
+  #     - INPUT_EXCHANGE=weathers
+  #     - INPUT_EXCHANGE_TYPE=fanout
+  #     - INPUT_QUEUE=prectot_filter
+  #     - INPUT_BIND=True
+  #     - OUTPUT_QUEUE_NAME=date_modifier
+  #     - CANT_CONDICIONES=1
+  #     - FILTER_0=1,int,prectot,gt,30
+  #   deploy:
+  #     replicas: 1
 
-  filter_trips_query1:
-    # container_name: filter_trips_query1
-    image: filter:latest
-    restart: on-failure
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    links: 
-      - rabbitmq
-    networks:
-      - testing_net
-    environment:
-      - PYTHONUNBUFFERED=1
-      - SHOW_LOGS=False
-      - INPUT_EXCHANGE=trips
-      - INPUT_EXCHANGE_TYPE=fanout
-      - INPUT_QUEUE=filter_trips_query1
-      - INPUT_BIND=True
-      - OUTPUT_QUEUE_NAME=joiner_1
-      - CANT_CONDICIONES=0
-      - SELECT=city,start_date,duration_sec
-    deploy:
-      replicas: 2
+  # date_modifier:
+  #   # container_name: date_modifier
+  #   image: date_modifier:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     - prectot_filter
+  #   links: 
+  #     - rabbitmq
+  #   networks:
+  #     - testing_net
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - INPUT_QUEUE_NAME=date_modifier
+  #     - OUTPUT_EXCHANGE=joiner_query_1
+  #     - OUTPUT_EXCHANGE_TYPE=fanout
+  #   deploy:
+  #     replicas: 1
 
-  joiner_query_1:
-    # container_name: joiner_query_1
-    image: joiner:latest
-    restart: on-failure
-    depends_on:
-      - date_modifier
-      - parser
-    links: 
-      - rabbitmq
-    networks:
-      - testing_net
-    environment:
-      - PYTHONUNBUFFERED=1
-      - INPUT_EXCHANGE_1=joiner_query_1
-      - INPUT_EXCHANGE_TYPE_1=fanout
-      - INPUT_BIND_1=True
-      - INPUT_QUEUE_NAME_2=joiner_1
-      - OUTPUT_QUEUE_NAME=groupby_query_1
-      - PRIMARY_KEY=city,date
-      - PRIMARY_KEY_2=city,start_date
-      - SELECT=start_date,duration_sec
-    deploy:
-      replicas: 2
-
-  groupby_query_1:
-    container_name: groupby_query_1
-    image: groupby:latest
-    restart: on-failure
-    depends_on:
-      - joiner_query_1
-    links: 
-      - rabbitmq
-    networks:
-      - testing_net
-    environment:
-      - PYTHONUNBUFFERED=1
-      - QUERY=query1
-      - INPUT_QUEUE_NAME=groupby_query_1
-      - OUTPUT_QUEUE_NAME=status_controller
-      - PRIMARY_KEY=start_date
-      - AGG=avg
-      - FIELD_TO_AGREGATE=duration_sec
-
-#-------------------------------QUERY 2 Services-------------------------------#
-
-  # filter_trips_year:
-  #   container_name: filter_trips_year
+  # filter_trips_query1:
+  #   # container_name: filter_trips_query1
   #   image: filter:latest
   #   restart: on-failure
   #   depends_on:
@@ -257,17 +157,157 @@ services:
   #     - SHOW_LOGS=False
   #     - INPUT_EXCHANGE=trips
   #     - INPUT_EXCHANGE_TYPE=fanout
-  #     - INPUT_QUEUE=filter_trips_year
+  #     - INPUT_QUEUE=filter_trips_query1
   #     - INPUT_BIND=True
-  #     - OUTPUT_QUEUE_NAME=joiner_query_2
-  #     - SELECT=start_station_code,yearid
-  #     - CANT_CONDICIONES=2
-  #     - FILTER_0=1,int,yearid,eq,2016
-  #     - FILTER_1=1,int,yearid,eq,2017
-  #     - OPERATORS=OR # Debe haber (#filtros - 1) operadores logicos
+  #     - OUTPUT_QUEUE_NAME=joiner_1
+  #     - CANT_CONDICIONES=0
+  #     - SELECT=city,start_date,duration_sec
+  #   deploy:
+  #     replicas: 1
 
-  # filter_stations_query2:
-  #   container_name: filter_stations_query2
+  # joiner_query_1:
+  #   # container_name: joiner_query_1
+  #   image: joiner:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     - date_modifier
+  #     - parser
+  #   links: 
+  #     - rabbitmq
+  #   networks:
+  #     - testing_net
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - INPUT_EXCHANGE_1=joiner_query_1
+  #     - INPUT_EXCHANGE_TYPE_1=fanout
+  #     - INPUT_BIND_1=True
+  #     - INPUT_QUEUE_NAME_2=joiner_1
+  #     - OUTPUT_QUEUE_NAME=groupby_query_1
+  #     - PRIMARY_KEY=city,date
+  #     - PRIMARY_KEY_2=city,start_date
+  #     - SELECT=start_date,duration_sec
+  #   deploy:
+  #     replicas: 1
+
+  # groupby_query_1:
+  #   container_name: groupby_query_1
+  #   image: groupby:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     - joiner_query_1
+  #   links: 
+  #     - rabbitmq
+  #   networks:
+  #     - testing_net
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - QUERY=query1
+  #     - INPUT_QUEUE_NAME=groupby_query_1
+  #     - OUTPUT_QUEUE_NAME=status_controller
+  #     - PRIMARY_KEY=start_date
+  #     - AGG=avg
+  #     - FIELD_TO_AGREGATE=duration_sec
+
+# -------------------------------QUERY 2 Services-------------------------------#
+
+  filter_trips_year:
+    container_name: filter_trips_year
+    image: filter:latest
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    networks:
+      - testing_net
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SHOW_LOGS=True
+      - INPUT_EXCHANGE=trips
+      - INPUT_EXCHANGE_TYPE=fanout
+      - INPUT_QUEUE=filter_trips_year
+      - INPUT_BIND=True
+      - OUTPUT_QUEUE_NAME=joiner_query_2
+      - SELECT=city,start_station_code,yearid
+      - CANT_CONDICIONES=2
+      - FILTER_0=1,int,yearid,eq,2016
+      - FILTER_1=1,int,yearid,eq,2017
+      - OPERATORS=OR # Debe haber (#filtros - 1) operadores logicos
+
+  filter_stations_query2:
+    container_name: filter_stations_query2
+    image: filter:latest
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    links: 
+      - rabbitmq
+    networks:
+      - testing_net
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SHOW_LOGS=False
+      - INPUT_EXCHANGE=stations
+      - INPUT_EXCHANGE_TYPE=fanout
+      - INPUT_QUEUE=filter_stations_query2
+      - INPUT_BIND=True
+      - OUTPUT_EXCHANGE=joiner_query_2
+      - OUTPUT_EXCHANGE_TYPE=fanout
+      - SELECT=city,code,name,yearid
+
+  joiner_query_2:
+    # container_name: joiner_query_2
+    image: joiner:latest
+    restart: on-failure
+    depends_on:
+      - filter_stations_query2
+      - filter_trips_year
+    links: 
+      - rabbitmq
+    networks:
+      - testing_net
+    environment:
+      - PYTHONUNBUFFERED=1
+      - INPUT_EXCHANGE_1=joiner_query_2
+      - INPUT_EXCHANGE_TYPE_1=fanout
+      - INPUT_BIND_1=True
+      - INPUT_QUEUE_NAME_2=joiner_query_2
+      - OUTPUT_QUEUE_NAME=groupby_query_2
+      - PRIMARY_KEY=city,code,yearid
+      - PRIMARY_KEY_2=city,start_station_code,yearid
+      - SELECT=name,yearid
+      - NEEDED_EOF_1=1
+      - JOINER_FUNCTION=default 
+  #   deploy:
+  #     replicas: 2
+
+  groupby_query_2:
+    container_name: groupby_query_2
+    image: groupby:latest
+    restart: on-failure
+    depends_on:
+      - joiner_query_2
+    links: 
+      - rabbitmq
+    networks:
+      - testing_net
+    environment:
+      - PYTHONUNBUFFERED=1
+      - QUERY=2
+      - INPUT_QUEUE_NAME=groupby_query_2
+      - OUTPUT_QUEUE_NAME=status_controller
+      - PRIMARY_KEY=name
+      - AGG=count
+      - FIELD_TO_AGREGATE=yearid
+      - QUERY=query2
+      - SEND_DATA_FUNCTION=find_dup_trips_year
+
+# #-------------------------------QUERY 3 Services-------------------------------#
+
+  # filter_trips_query3:
+  #   container_name: filter_trips_query3
   #   image: filter:latest
   #   restart: on-failure
   #   depends_on:
@@ -280,170 +320,97 @@ services:
   #   environment:
   #     - PYTHONUNBUFFERED=1
   #     - SHOW_LOGS=False
+  #     - INPUT_EXCHANGE=trips
+  #     - INPUT_EXCHANGE_TYPE=fanout
+  #     - INPUT_QUEUE=filter_trips_query3
+  #     - INPUT_BIND=True
+  #     - OUTPUT_QUEUE_NAME=joiner_query_3
+  #     - CANT_CONDICIONES=1
+  #     - FILTER_0=1,string,city,eq,montreal
+  #     - SELECT=start_station_code,end_station_code,yearid
+
+  # filter_stations_query3:
+  #   container_name: filter_stations_query3
+  #   image: filter:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   links: 
+  #     - rabbitmq
+  #   networks:
+  #     - testing_net
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - SHOW_LOGS=Fase
   #     - INPUT_EXCHANGE=stations
   #     - INPUT_EXCHANGE_TYPE=fanout
-  #     - INPUT_QUEUE=filter_stations_query2
+  #     - INPUT_QUEUE=filter_stations_query3
   #     - INPUT_BIND=True
-  #     - OUTPUT_EXCHANGE=joiner_query_2
+  #     - OUTPUT_EXCHANGE=joiner_query_3
   #     - OUTPUT_EXCHANGE_TYPE=fanout
-  #     - SELECT=code,name,yearid
+  #     - SELECT=city,code,name,latitude,longitude,yearid
+  #     - CANT_CONDICIONES=1
+  #     - FILTER_0=1,string,city,eq,montreal
 
-  # joiner_query_2:
-  #   # container_name: joiner_query_2
+  # joiner_query_3:
+  #   container_name: joiner_query_3
   #   image: joiner:latest
   #   restart: on-failure
   #   depends_on:
-  #     - filter_stations_query2
-  #     - filter_trips_year
+  #     rabbitmq:
+  #       condition: service_healthy
   #   links: 
   #     - rabbitmq
   #   networks:
   #     - testing_net
   #   environment:
   #     - PYTHONUNBUFFERED=1
-  #     - INPUT_EXCHANGE_1=joiner_query_2
+  #     - INPUT_EXCHANGE_1=joiner_query_3
   #     - INPUT_EXCHANGE_TYPE_1=fanout
   #     - INPUT_BIND_1=True
-  #     - INPUT_QUEUE_NAME_2=joiner_query_2
-  #     - OUTPUT_QUEUE_NAME=groupby_query_2
+  #     - INPUT_QUEUE_NAME_2=joiner_query_3
+  #     - OUTPUT_QUEUE_NAME=distance_calculator
   #     - PRIMARY_KEY=code,yearid
-  #     - PRIMARY_KEY_2=start_station_code,yearid
-  #     - SELECT=name,yearid
-  #     - NEEDED_EOF_1=1
-  #     - JOINER_FUNCTION=default 
-  #   deploy:
-  #     replicas: 2
+  #     - JOINER_FUNCTION=join_func_query3
 
-  # groupby_query_2:
-  #   container_name: groupby_query_2
+
+  # distance_calculator:
+  #   container_name: distance_calculator
+  #   image: distance_calculator:latest
+  #   restart: on-failure
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   links: 
+  #     - rabbitmq
+  #   networks:
+  #     - testing_net
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - INPUT_QUEUE_NAME=distance_calculator
+  #     - OUTPUT_QUEUE_NAME=groupby_query_3
+
+  # groupby_query_3:
+  #   container_name: groupby_query_3
   #   image: groupby:latest
   #   restart: on-failure
   #   depends_on:
-  #     - joiner_query_2
+  #     rabbitmq:
+  #       condition: service_healthy
   #   links: 
   #     - rabbitmq
   #   networks:
   #     - testing_net
   #   environment:
   #     - PYTHONUNBUFFERED=1
-  #     - QUERY=2
-  #     - INPUT_QUEUE_NAME=groupby_query_2
+  #     - QUERY=query3
+  #     - INPUT_QUEUE_NAME=groupby_query_3
   #     - OUTPUT_QUEUE_NAME=status_controller
-  #     - PRIMARY_KEY=name
-  #     - AGG=count
-  #     - FIELD_TO_AGREGATE=yearid
-  #     - QUERY=query2
-  #     - SEND_DATA_FUNCTION=find_dup_trips_year
-
-# #-------------------------------QUERY 3 Services-------------------------------#
-
-#   filter_trips_query3:
-#     container_name: filter_trips_query3
-#     image: filter:latest
-#     restart: on-failure
-#     depends_on:
-#       rabbitmq:
-#         condition: service_healthy
-#     links: 
-#       - rabbitmq
-#     networks:
-#       - testing_net
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - SHOW_LOGS=False
-#       - INPUT_EXCHANGE=trips
-#       - INPUT_EXCHANGE_TYPE=fanout
-#       - INPUT_QUEUE=filter_trips_query3
-#       - INPUT_BIND=True
-#       - OUTPUT_QUEUE_NAME=joiner_query_3
-#       - CANT_CONDICIONES=1
-#       - FILTER_0=1,string,city,eq,montreal
-#       - SELECT=start_station_code,end_station_code,yearid
-
-#   filter_stations_query3:
-#     container_name: filter_stations_query3
-#     image: filter:latest
-#     restart: on-failure
-#     depends_on:
-#       rabbitmq:
-#         condition: service_healthy
-#     links: 
-#       - rabbitmq
-#     networks:
-#       - testing_net
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - SHOW_LOGS=Fase
-#       - INPUT_EXCHANGE=stations
-#       - INPUT_EXCHANGE_TYPE=fanout
-#       - INPUT_QUEUE=filter_stations_query3
-#       - INPUT_BIND=True
-#       - OUTPUT_EXCHANGE=joiner_query_3
-#       - OUTPUT_EXCHANGE_TYPE=fanout
-#       - SELECT=city,code,name,latitude,longitude,yearid
-#       - CANT_CONDICIONES=1
-#       - FILTER_0=1,string,city,eq,montreal
-
-#   joiner_query_3:
-#     container_name: joiner_query_3
-#     image: joiner:latest
-#     restart: on-failure
-#     depends_on:
-#       rabbitmq:
-#         condition: service_healthy
-#     links: 
-#       - rabbitmq
-#     networks:
-#       - testing_net
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - INPUT_EXCHANGE_1=joiner_query_3
-#       - INPUT_EXCHANGE_TYPE_1=fanout
-#       - INPUT_BIND_1=True
-#       - INPUT_QUEUE_NAME_2=joiner_query_3
-#       - OUTPUT_QUEUE_NAME=distance_calculator
-#       - PRIMARY_KEY=code,yearid
-#       # - PRIMARY_KEY_2=start_station_code,end_station_code
-#       # - SELECT=name
-#       - JOINER_FUNCTION=join_func_query3
-
-
-#   distance_calculator:
-#     container_name: distance_calculator
-#     image: distance_calculator:latest
-#     restart: on-failure
-#     depends_on:
-#       rabbitmq:
-#         condition: service_healthy
-#     links: 
-#       - rabbitmq
-#     networks:
-#       - testing_net
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - INPUT_QUEUE_NAME=distance_calculator
-#       - OUTPUT_QUEUE_NAME=groupby_query_3
-
-#   groupby_query_3:
-#     container_name: groupby_query_3
-#     image: groupby:latest
-#     restart: on-failure
-#     depends_on:
-#       rabbitmq:
-#         condition: service_healthy
-#     links: 
-#       - rabbitmq
-#     networks:
-#       - testing_net
-#     environment:
-#       - PYTHONUNBUFFERED=1
-#       - QUERY=query3
-#       - INPUT_QUEUE_NAME=groupby_query_3
-#       - OUTPUT_QUEUE_NAME=status_controller
-#       - PRIMARY_KEY=end_name
-#       - AGG=avg
-#       - FIELD_TO_AGREGATE=distance
-#       - SEND_DATA_FUNCTION=find_stations_query_3
+  #     - PRIMARY_KEY=end_name
+  #     - AGG=avg
+  #     - FIELD_TO_AGREGATE=distance
+  #     - SEND_DATA_FUNCTION=find_stations_query_3
 
 
 

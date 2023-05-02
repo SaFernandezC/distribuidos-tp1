@@ -11,16 +11,11 @@ load_dotenv()
 INPUT_EXCHANGE_1 = os.getenv('INPUT_EXCHANGE_1')
 INPUT_EXCHANGE_TYPE_1 = os.getenv('INPUT_EXCHANGE_TYPE_1')
 INPUT_BIND_1 = True if os.getenv('INPUT_BIND_1') == "True" else False
-
 INPUT_QUEUE_NAME_2 = os.getenv('INPUT_QUEUE_NAME_2')
-
-
 OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME')
-
 PRIMARY_KEY = os.getenv('PRIMARY_KEY', '')
 PRIMARY_KEY_2 = os.getenv('PRIMARY_KEY_2', '')
 SELECT = os.getenv('SELECT', None)
-
 JOINER_FUNCTION = os.getenv('JOINER_FUNCTION', 'default')
 
 side_table = {}
@@ -46,10 +41,8 @@ def select(fields, row):
 def callback_queue1(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        print("RECIBO EOF ---> DEJO DE ESCUCHAR POR SIDE TABLE")
-        # print("Recibo EOF y dejo de escuchar-> Side table: ", side_table)
-        args[1].close()
-        return
+        ch.stop_consuming()
+        # print("RECIBO EOF -> SIDE TABLE: ",side_table)
     else:
         add_item_test(args[0], line)
 
@@ -60,15 +53,11 @@ def join(key, item):
 
 
 def callback_queue2(ch, method, properties, body, args):
-    print("ENTRO AL CALLBACK 2")
     line = json.loads(body.decode())
-    print("RECIBO LINEA: ",line)
-    
+  
     if "eof" in line:
-        args[4].stop_consuming()
+        ch.stop_consuming()
         args[3].send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
-        print("RECIBO EOF ---> DEJO DE ESCUCHAR")
-    
     else:
         joined, res = join(args[0], line)
 
@@ -81,7 +70,6 @@ def callback_queue2(ch, method, properties, body, args):
 
 
 def main():
-    # Tomo las variables de entorno
     if SELECT:
         fields_to_select = SELECT.split(',')
     else: fields_to_select = None
@@ -95,13 +83,16 @@ def main():
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
     input_queue2 = Queue(queue_name=INPUT_QUEUE_NAME_2)
 
-    on_message_callback = functools.partial(callback_queue1, args=(key_1, input_queue1, ))
+    on_message_callback = functools.partial(callback_queue1, args=(key_1,))
     input_queue1.recv(callback=on_message_callback)
 
-    print("SALI DEL CALLBACK1 VOY AL CALLBACK 2")
-    on_message_callback2 = functools.partial(callback_queue2, args=(key_2, fields_to_select, output_queue, eof_manager, input_queue2))
+    on_message_callback2 = functools.partial(callback_queue2, args=(key_2, fields_to_select, output_queue, eof_manager))
     input_queue2.recv(callback=on_message_callback2, auto_ack=False)
 
+    input_queue1.close()
+    output_queue.close()
+    input_queue2.close()
+    eof_manager.close()
     return 0
 
 
