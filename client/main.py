@@ -76,7 +76,6 @@ def main():
         }
 
         client.send_trips(trips)
-        client.send_finish()
 
         ready = False
         while not ready:
@@ -91,6 +90,7 @@ def main():
         print("*------------------*")
         print("Query3: ", data["query3"])
 
+        client.send_finish()
     except Exception as e:
         logging.error("Error: {}".format(e))
 

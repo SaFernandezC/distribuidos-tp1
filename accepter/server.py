@@ -79,6 +79,7 @@ class Server:
                 self.recv_eof(client_sock, key)
             elif action == FINISH:
                 self.protocol.send_ack(client_sock, True)
+                break
             elif action == ASK_DATA:
                 self.ask_for_data(client_sock)
     

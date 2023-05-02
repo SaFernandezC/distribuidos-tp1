@@ -1,0 +1,42 @@
+{
+    "date_modifier": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "joiner_1": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "groupby_query_1": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "joiner_query_2": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "groupby_query_2": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "joiner_query_3": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "distance_calculator": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "groupby_query_3": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    }
+}

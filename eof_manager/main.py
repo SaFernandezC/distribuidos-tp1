@@ -5,66 +5,78 @@ import os
 import functools
 import time
 
-exchanges = {
+exchanges = {}
+work_queues = {}
+# exchanges = {
 
-        "weathers":{
-            "writing":1,
-            "eof_received": 0,
-            "queues_binded": {
-                "prectot_filter":{"listening": 1}
-            }
-        },
+#         "weathers":{
+#             "writing":1,
+#             "eof_received": 0,
+#             "queues_binded": {
+#                 "prectot_filter":{"listening": 1}
+#             }
+#         },
 
-        "trips":{
-            "writing":1,
-            "eof_received": 0,
-            "queues_binded":{
-                "filter_trips_query1":{"listening": 1},
-                "filter_trips_year":{"listening":1},
-                "filter_trips_query3":{"listening":1}
-            }
-        },
+#         "trips":{
+#             "writing":1,
+#             "eof_received": 0,
+#             "queues_binded":{
+#                 "filter_trips_query1":{"listening": 1},
+#                 "filter_trips_year":{"listening":1},
+#                 "filter_trips_query3":{"listening":1}
+#             }
+#         },
 
-        "stations":{
-            "writing":1,
-            "eof_received": 0,
-            "queues_binded":{
-                "filter_stations_query2":{"listening": 1},
-                "filter_stations_query3":{"listening":1}
-            }
-        },
+#         "stations":{
+#             "writing":1,
+#             "eof_received": 0,
+#             "queues_binded":{
+#                 "filter_stations_query2":{"listening": 1},
+#                 "filter_stations_query3":{"listening":1}
+#             }
+#         },
 
-        "joiner_query_1":{
-            "writing":1,
-            "eof_received": 0,
-            "queues_binded":{}
-        },
+#         "joiner_query_1":{
+#             "writing":1,
+#             "eof_received": 0,
+#             "queues_binded":{}
+#         },
 
-        "joiner_query_2":{
-            "writing":1,
-            "eof_received": 0,
-            "queues_binded":{}
-        },
+#         "joiner_query_2":{
+#             "writing":1,
+#             "eof_received": 0,
+#             "queues_binded":{}
+#         },
 
-        "joiner_query_3":{
-            "writing":1,
-            "eof_received": 0,
-            "queues_binded":{}
-        },
-}
+#         "joiner_query_3":{
+#             "writing":1,
+#             "eof_received": 0,
+#             "queues_binded":{}
+#         },
+# }
 
-work_queues = {
-        "date_modifier": {"writing":1, "listening":1, "eof_received":0},
-        "joiner_1": {"writing":1, "listening":1, "eof_received":0},
-        "groupby_query_1": {"writing":1, "listening":1, "eof_received":0},
+# work_queues = {
+#         "date_modifier": {"writing":1, "listening":1, "eof_received":0},
+#         "joiner_1": {"writing":1, "listening":1, "eof_received":0},
+#         "groupby_query_1": {"writing":1, "listening":1, "eof_received":0},
 
-        "joiner_query_2": {"writing":1, "listening":1, "eof_received":0},
-        "groupby_query_2": {"writing":1, "listening":1, "eof_received":0},
+#         "joiner_query_2": {"writing":1, "listening":1, "eof_received":0},
+#         "groupby_query_2": {"writing":1, "listening":1, "eof_received":0},
 
-        "joiner_query_3": {"writing":1, "listening":1, "eof_received":0},
-        "distance_calculator": {"writing":1, "listening":1, "eof_received":0},
-        "groupby_query_3": {"writing":1, "listening":1, "eof_received":0}
-    }
+#         "joiner_query_3": {"writing":1, "listening":1, "eof_received":0},
+#         "distance_calculator": {"writing":1, "listening":1, "eof_received":0},
+#         "groupby_query_3": {"writing":1, "listening":1, "eof_received":0}
+#     }
+
+def load_config():
+    global exchanges
+    global work_queues
+    with open("exchanges.json", "r") as file:
+        exchanges = json.loads(file.read())
+        file.close()
+    with open("queues.json", "r") as file:
+        work_queues = json.loads(file.read())
+        file.close()
 
 EOF_MSG = json.dumps({"eof": True})
 
@@ -131,6 +143,7 @@ def callback(ch, method, properties, body, args):
             temp.close()
 
 def main():
+    load_config()
     input_queue = Queue(queue_name="eof_manager")
 
     on_message_callback = functools.partial(callback, args=("exchanges",))
