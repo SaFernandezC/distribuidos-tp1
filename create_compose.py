@@ -100,14 +100,14 @@ def create_queues_file(args):
         data["groupby_query_1"]["writing"] = args.joiner_1
         data["groupby_query_1"]["listening"] = 1
 
-        data["joiner_query_2"]["writing"] = args.filter_trips_2
-        data["joiner_query_2"]["listening"] = args.joiner_2
+        data["joiner_2"]["writing"] = args.filter_trips_2
+        data["joiner_2"]["listening"] = args.joiner_2
 
         data["groupby_query_2"]["writing"] = args.joiner_2
         data["groupby_query_2"]["listening"] = 1
 
-        data["joiner_query_3"]["writing"] = args.filter_trips_3
-        data["joiner_query_3"]["listening"] = args.joiner_3
+        data["joiner_3"]["writing"] = args.filter_trips_3
+        data["joiner_3"]["listening"] = args.joiner_3
 
         data["distance_calculator"]["writing"] = args.joiner_3
         data["distance_calculator"]["listening"] = args.dist_calculator

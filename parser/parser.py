@@ -5,6 +5,7 @@ import logging
 import os
 import functools
 from utils import send, handle_eof, parse_weathers, parse_trips, parse_stations
+import time
 
 
 def initialize_config():
@@ -40,9 +41,9 @@ def initialize_log(logging_level):
 def callback(ch, method, properties, body, args):
     batch = json.loads(body.decode())
     if "eof" in batch:
-        handle_eof(batch, args[0], args[1], args[2], args[3])
+        print(f"{time.asctime(time.localtime())} RECIBO EOF ---> DEJO DE ESCUCHAR")
+        handle_eof(batch, args[0], args[1], args[2], args[3], args[4])
         ch.stop_consuming()
-        print("RECIBO EOF ---> DEJO DE ESCUCHAR")
     else:
         if batch["type"] == "weathers":
             send(args[0], batch['city'], batch['data'], parse_weathers)
@@ -50,7 +51,7 @@ def callback(ch, method, properties, body, args):
             send(args[1], batch['city'], batch['data'], parse_trips)
         else: # Stations
             send(args[2], batch['city'], batch['data'], parse_stations)
-    # ch.basic_ack(delivery_tag=method.delivery_tag)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
     config_params = initialize_config()
@@ -61,23 +62,26 @@ def main():
     initialize_log(logging_level)
     logging.info(f"action: config | result: success | logging_level: {logging_level}")
 
-    # input_queue = Queue(queue_name="raw_data")
-    input_queue = Queue(exchange_name='raw_data', exchange_type='direct', bind=True, routing_key=routing_key, queue_name=input_queue)
+    input_queue = Queue(queue_name=routing_key)
+    # input_queue = Queue(exchange_name='raw_data', exchange_type='direct', bind=True, routing_key=routing_key, queue_name=input_queue)
 
     weathers_queue = Queue(exchange_name='weathers', exchange_type='fanout')
     trips_queue = Queue(exchange_name="trips", exchange_type='fanout')
     stations_queue = Queue(exchange_name="stations", exchange_type='fanout')
+
     eof_manager = Queue(queue_name="eof_manager")
 
 
-    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=True)
+    on_message_callback = functools.partial(callback, args=(weathers_queue, trips_queue, stations_queue, eof_manager, routing_key))
+    input_queue.recv(callback=on_message_callback, auto_ack=False)
 
-    input_queue.close() 
-    weathers_queue.close() 
-    trips_queue.close() 
-    stations_queue.close() 
-    eof_manager.close() 
+    time.sleep(50)
+
+    # input_queue.close() 
+    # weathers_queue.close() 
+    # trips_queue.close() 
+    # stations_queue.close() 
+    # eof_manager.close() 
 
 if __name__ == '__main__':
     main()

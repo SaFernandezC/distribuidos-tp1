@@ -5,6 +5,8 @@ from protocol import Protocol
 import multiprocessing
 from common.queue import Queue
 from utils import asker
+import time
+import json
 
 FINISH = 'F'
 SEND_DATA = 'D'
@@ -28,8 +30,13 @@ class Server:
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.protocol = Protocol()
-        self.queue = Queue(exchange_name='raw_data', exchange_type='direct')
+        # self.queue = Queue(exchange_name='raw_data', exchange_type='direct')
         self.metrics_queue = Queue(queue_name="metrics")
+        self.eof_manager = Queue(queue_name="eof_manager")
+
+        self.trips_queue = Queue(queue_name="trip")
+        self.weathers_queue = Queue(queue_name="weather")
+        self.stations_queue = Queue(queue_name="station")
 
         self.results_queue = multiprocessing.Queue()
         self.ask_results = multiprocessing.Process(target=asker, args=(self.metrics_queue, self.results_queue))
@@ -38,7 +45,13 @@ class Server:
     def recv_data(self, client_sock, key):
         logging.debug(f'action: receiving data')
         data = self.protocol.recv_data(client_sock)
-        self.queue.send(body=data, routing_key=key)
+        # self.queue.send(body=data, routing_key=key)
+        if key == "trip":
+            self.trips_queue.send(body=data)
+        elif key == "station":
+            self.stations_queue.send(body=data)
+        else:
+            self.weathers_queue.send(body=data)
         self.protocol.send_ack(client_sock, True)
 
     def calculate_eof(self, key):
@@ -49,13 +62,29 @@ class Server:
         else: return self.weather_parsers
 
     def send_eof(self, data, key):
-        eof_to_send = self.calculate_eof(key)
-        for i in range(eof_to_send):
-            self.queue.send(body=data, routing_key=key)
+        # eof_to_send = self.calculate_eof(key)
+        # self.eof_manager.send(body=json.dumps({"exchange_type": "direct",
+        #                                      "type":"exchange",
+        #                                       "exchange": "raw_data",
+        #                                       "key": key}))
+        # time.sleep(5)
+        self.eof_manager.send(body=json.dumps({"type":"work_queue", "queue": key}))
+        # if key == "trip":
+        #     self.trips_queue.send(body=json.dumps({"eof":True}))
+        # elif key == "station":
+        #     self.stations_queue.send(body=json.dumps({"eof":True}))
+        # else:
+        #     self.weathers_queue.send(body=json.dumps({"eof":True}))
+        
+        # print(f"Envio {eof_to_send} a la key {key}")
+        # # time.sleep(15)
+        # for i in range(eof_to_send):
+        #     self.queue.send(body=data, routing_key=key)
 
     def recv_eof(self, client_sock, key): 
         logging.debug(f'action: receiving eof')
         data = self.protocol.recv_data(client_sock)
+        # print("Data eof:", data)
         self.send_eof(data, key)
         self.protocol.send_ack(client_sock, True)
 

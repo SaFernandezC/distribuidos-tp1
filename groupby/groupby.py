@@ -61,12 +61,12 @@ def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
         print("RECIBO EOF ---> DEJO DE ESCUCHAR y ENVIO DATA")
-        send_data(args[2])
         ch.stop_consuming()
-        return
+        send_data(args[2])
     else:
         group(args[0], line, args[1])
         # print("Group table: ", group_table)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def define_agg():
     if AGG == 'avg':
@@ -88,7 +88,7 @@ def main():
     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
     on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue))
-    input_queue.recv(callback=on_message_callback)
+    input_queue.recv(callback=on_message_callback, auto_ack=False)
 
     input_queue.close()
     output_queue.close()

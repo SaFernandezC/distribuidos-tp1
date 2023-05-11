@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 import functools
 from haversine import haversine
+import time
 
 load_dotenv()
 
@@ -21,7 +22,7 @@ def callback_queue1(ch, method, properties, body, args):
         distance = haversine((line['start_latitude'], line['start_longitude']), (line['end_latitude'], line['end_longitude']))
         res = {"end_name": line["end_name"], "distance": distance}
         args[0].send(body=json.dumps(res))
-    # ch.basic_ack(delivery_tag=method.delivery_tag)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
 
@@ -30,8 +31,9 @@ def main():
     eof_manager = Queue(queue_name="eof_manager")
 
     on_message_callback = functools.partial(callback_queue1, args=(output_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=True)
+    input_queue.recv(callback=on_message_callback, auto_ack=False)
 
+    time.sleep(50)
 
 if __name__ == "__main__":
     main()

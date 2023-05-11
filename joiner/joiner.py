@@ -41,10 +41,11 @@ def select(fields, row):
 def callback_queue1(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
+        print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 1 ---> DEJO DE ESCUCHAR, {line}")
         ch.stop_consuming()
-        # print("RECIBO EOF -> SIDE TABLE: ",side_table)
     else:
         add_item_test(args[0], line)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def join(key, item):
@@ -56,7 +57,9 @@ def callback_queue2(ch, method, properties, body, args):
     line = json.loads(body.decode())
   
     if "eof" in line:
+        print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 2 ---> DEJO DE ESCUCHAR, {line}")
         ch.stop_consuming()
+        # args[2].send(body=body)
         args[3].send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
     else:
         joined, res = join(args[0], line)
@@ -84,10 +87,12 @@ def main():
     input_queue2 = Queue(queue_name=INPUT_QUEUE_NAME_2)
 
     on_message_callback = functools.partial(callback_queue1, args=(key_1,))
-    input_queue1.recv(callback=on_message_callback)
+    input_queue1.recv(callback=on_message_callback, auto_ack=False)
 
     on_message_callback2 = functools.partial(callback_queue2, args=(key_2, fields_to_select, output_queue, eof_manager))
     input_queue2.recv(callback=on_message_callback2, auto_ack=False)
+
+    time.sleep(50)
 
     input_queue1.close()
     output_queue.close()

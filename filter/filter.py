@@ -71,14 +71,18 @@ def apply_logic_operator(results, operators):
 def send_eof(eof_manager):
     if OUTPUT_EXCHANGE == '':
         eof_manager.send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
+        # print("Envio: ", json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
     else:
+        # print("Envio: ", json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
         eof_manager.send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
+
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        print("RECIBO EOF ---> DEJO DE ESCUCHAR")
+        # print(f"{time.asctime(time.localtime())} RECIBO EOF {line} ---> DEJO DE ESCUCHAR")
         ch.stop_consuming()
+        # args[2].send(body=body)
         send_eof(args[6])
     else:
         filtered = True
@@ -93,7 +97,7 @@ def callback(ch, method, properties, body, args):
             body=json.dumps(select(args[0], line))
             printer(select(args[0], line))
             args[2].send(body=body)
-    # ch.basic_ack(delivery_tag=method.delivery_tag)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
     # Tomo las variables de entorno
@@ -122,8 +126,9 @@ def main():
 
     # print(' Waiting for messages. To exit press CTRL+C')
     on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators, input_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=True)
+    input_queue.recv(callback=on_message_callback, auto_ack=False)
 
+    time.sleep(50)
 
 if __name__ == "__main__":
     main()

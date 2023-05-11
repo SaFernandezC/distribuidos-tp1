@@ -3,6 +3,7 @@ from common.queue import Queue
 from dotenv import load_dotenv
 import json
 import functools
+import time
 
 load_dotenv()
 
@@ -59,12 +60,13 @@ def callback(ch, method, properties, body, args):
     # print(line)
     if "eof" in line:
         ch.stop_consuming()
+        # args[0].send(body=body)
         args[2].send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
     else:
         line['date'] = restar_dia(line['date'])
         # print(line)
         args[0].send(body=json.dumps(line))
-    # ch.basic_ack(delivery_tag=method.delivery_tag)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
 
@@ -73,8 +75,9 @@ def main():
     output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
 
     on_message_callback = functools.partial(callback, args=(output_queue, input_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=True)
-
+    input_queue.recv(callback=on_message_callback, auto_ack=False)
+    
+    time.sleep(50)
     input_queue.close()
     output_queue.close()
     eof_manager.close()
