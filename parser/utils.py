@@ -45,17 +45,17 @@ def send_eof(queue, msg):
 
 def handle_eof(msg, weathers_queue, trips_queue, stations_queue, eof_manager, routing_key):
     if routing_key == "weather":
-        # eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "weathers"}))
+        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "weathers"}))
         # time.sleep(10)
-        send_eof(weathers_queue, msg)
+        # send_eof(weathers_queue, msg)
     elif routing_key == "trip":
         eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "trips"}))
         # time.sleep(10)
-        send_eof(trips_queue, msg)
+        # send_eof(trips_queue, msg)
     elif routing_key == "station":
-        # eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "stations"}))
+        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "stations"}))
         # time.sleep(10)
-        send_eof(stations_queue, msg)
+        # send_eof(stations_queue, msg)
 
 def send(queue, city, data, parser):
     for item in data:

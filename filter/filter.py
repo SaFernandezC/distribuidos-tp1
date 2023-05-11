@@ -81,9 +81,9 @@ def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
         # print(f"{time.asctime(time.localtime())} RECIBO EOF {line} ---> DEJO DE ESCUCHAR")
-        ch.stop_consuming()
         # args[2].send(body=body)
         send_eof(args[6])
+        ch.stop_consuming()
     else:
         filtered = True
         filter_results = []

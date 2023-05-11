@@ -9,7 +9,7 @@
         }
     },
     "trips": {
-        "writing": 1,
+        "writing": 2,
         "eof_received": 0,
         "queues_binded": {
             "filter_trips_query1": {

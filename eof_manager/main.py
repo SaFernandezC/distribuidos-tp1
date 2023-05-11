@@ -7,66 +7,6 @@ import time
 
 exchanges = {}
 work_queues = {}
-# exchanges = {
-
-#         "weathers":{
-#             "writing":1,
-#             "eof_received": 0,
-#             "queues_binded": {
-#                 "prectot_filter":{"listening": 1}
-#             }
-#         },
-
-#         "trips":{
-#             "writing":1,
-#             "eof_received": 0,
-#             "queues_binded":{
-#                 "filter_trips_query1":{"listening": 1},
-#                 "filter_trips_year":{"listening":1},
-#                 "filter_trips_query3":{"listening":1}
-#             }
-#         },
-
-#         "stations":{
-#             "writing":1,
-#             "eof_received": 0,
-#             "queues_binded":{
-#                 "filter_stations_query2":{"listening": 1},
-#                 "filter_stations_query3":{"listening":1}
-#             }
-#         },
-
-#         "joiner_query_1":{
-#             "writing":1,
-#             "eof_received": 0,
-#             "queues_binded":{}
-#         },
-
-#         "joiner_query_2":{
-#             "writing":1,
-#             "eof_received": 0,
-#             "queues_binded":{}
-#         },
-
-#         "joiner_query_3":{
-#             "writing":1,
-#             "eof_received": 0,
-#             "queues_binded":{}
-#         },
-# }
-
-# work_queues = {
-#         "date_modifier": {"writing":1, "listening":1, "eof_received":0},
-#         "joiner_1": {"writing":1, "listening":1, "eof_received":0},
-#         "groupby_query_1": {"writing":1, "listening":1, "eof_received":0},
-
-#         "joiner_query_2": {"writing":1, "listening":1, "eof_received":0},
-#         "groupby_query_2": {"writing":1, "listening":1, "eof_received":0},
-
-#         "joiner_query_3": {"writing":1, "listening":1, "eof_received":0},
-#         "distance_calculator": {"writing":1, "listening":1, "eof_received":0},
-#         "groupby_query_3": {"writing":1, "listening":1, "eof_received":0}
-#     }
 
 def load_config():
     global exchanges
@@ -81,7 +21,7 @@ def load_config():
 EOF_MSG = json.dumps({"eof": True})
 
 
-def exchange_with_queues(line, exchanges_queues):
+def exchange_with_queues(line, exchanges_queues, queues):
     exchange = exchanges[line["exchange"]]
     writing = exchange["writing"]
     exchange["eof_received"] += 1
@@ -89,14 +29,17 @@ def exchange_with_queues(line, exchanges_queues):
     # print(f"{time.asctime(time.localtime())} -> EOF PARCIAL: {exchange['eof_received']}")
 
     if exchange["eof_received"] == writing:
-        print(f"{time.asctime(time.localtime())} RECIBI IGUAL EOF QUE WRITING en {exchange} -> MANDO EOF A EXCHANGE")
+        # print(f"{time.asctime(time.localtime())} RECIBI IGUAL EOF QUE WRITING en {exchange} -> MANDO EOF A EXCHANGE")
+       
         # MANDAR EL MAXIMOS ENTRE LOS QUE ESCUCHAN
         exchanges_queues[line["exchange"]].send(EOF_MSG)
+
         # temp = Queue(exchange_name=line["exchange"], exchange_type='fanout')
-        # for queue_name, queue_data in queues_binded.items():
-            # listening = queue_data["listening"]
+        for queue_name, queue_data in queues_binded.items():
+            listening = queue_data["listening"]
         #     temp = Queue(queue_name=queue_name)
-            # for i in range(listening):
+            for i in range(listening):
+                queues[queue_name].send(body=EOF_MSG)
         #         # print(f"{time.asctime(time.localtime())} ENVIO EOF A COLA {queue_name} DE EXCHANFE: ", line["exchange"])
         #         temp.send(body=EOF_MSG)
             # temp.close()
@@ -127,7 +70,7 @@ def callback(ch, method, properties, body, args):
         if len(exchanges[line["exchange"]]["queues_binded"]) == 0:
             exchange_without_queues(line, args[0])
         else:
-            exchange_with_queues(line, args[0])
+            exchange_with_queues(line, args[0], args[1])
 
 
     if line["type"] == "work_queue":
@@ -136,8 +79,6 @@ def callback(ch, method, properties, body, args):
         listening = work_queues[queue]["listening"]
 
         work_queues[queue]["eof_received"] += 1
-
-        print("COLA: ", work_queues)
 
         if work_queues[queue]["eof_received"] == writing:
             # temp = Queue(queue_name=queue)
@@ -174,6 +115,12 @@ def main():
         "trip": Queue(queue_name="trip"),
         "weather": Queue(queue_name="weather"),
         "station": Queue(queue_name="station"),
+        "filter_trips_query1": Queue(queue_name="filter_trips_query1"),
+        "filter_trips_year": Queue(queue_name="filter_trips_year"),
+        "filter_trips_query3": Queue(queue_name="filter_trips_query3"),
+        "filter_stations_query2": Queue(queue_name="filter_stations_query2"),
+        "filter_stations_query3": Queue(queue_name="filter_stations_query3"),
+        "prectot_filter": Queue(queue_name="prectot_filter"),
     }
 
     on_message_callback = functools.partial(callback, args=(exchanges, queues))
