@@ -11,7 +11,7 @@ import pika
 
 load_dotenv()
 
-CANTIDAD = os.getenv('CANT_CONDICIONES', 0)
+CANTIDAD = int(os.getenv('CANT_CONDICIONES', 0))
 SELECT = os.getenv('SELECT', None)
 OPERATORS = os.getenv('OPERATORS', None)
 
@@ -127,6 +127,10 @@ def main():
     cantidad_filtros = int(CANTIDAD)
     for i in range(cantidad_filtros):
         filters.append(os.getenv('FILTER_'+str(i)).split(','))
+    
+    raw_filters = []
+    for i in range(cantidad_filtros):
+        raw_filters.append(os.getenv('FILTER_'+str(i)))
     
     if OPERATORS and cantidad_filtros > 1:
         operators = OPERATORS.split(',')
