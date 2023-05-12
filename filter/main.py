@@ -6,21 +6,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-CANTIDAD = int(os.getenv('CANT_CONDICIONES', 0))
-SELECT = os.getenv('SELECT', None)
-OPERATORS = os.getenv('OPERATORS', None)
-
-INPUT_QUEUE = os.getenv('INPUT_QUEUE', None)
-INPUT_EXCHANGE = os.getenv('INPUT_EXCHANGE', None)
-INPUT_EXCHANGE_TYPE = os.getenv('INPUT_EXCHANGE_TYPE', None)
-INPUT_BIND = True if os.getenv('INPUT_BIND') == "True" else False
-
-OUTPUT_EXCHANGE = os.getenv('OUTPUT_EXCHANGE', None)
-OUTPUT_EXCHANGE_TYPE = os.getenv('OUTPUT_EXCHANGE_TYPE', None)
-OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME', None)
-
-SHOW_LOGS =  True if os.getenv("SHOW_LOGS") == "True" else False
-
 
 def initialize_config():
     config = ConfigParser(os.environ)
@@ -29,7 +14,22 @@ def initialize_config():
 
     config_params = {}
     try:
-        config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
+        config_params["logging_level"] = config.get("DEFAULT", "LOGGING_LEVEL", fallback=None)
+        config_params["amount_filters"] = int(config.get("DEFAULT", "AMOUNT_FILTERS", fallback=0))
+        config_params["select"] = config.get("DEFAULT", "SELECT", fallback=None)
+        config_params["operators"] = config.get("DEFAULT", "OPERATORS", fallback=None)
+        config_params["input_queue"] = config.get("DEFAULT", "INPUT_QUEUE", fallback=None)
+        config_params["input_exchange"] = config.get("DEFAULT", "INPUT_EXCHANGE", fallback=None)
+        config_params["input_exchange_type"] = config.get("DEFAULT", "INPUT_EXCHANGE_TYPE", fallback=None)
+        config_params["output_exchange"] = config.get("DEFAULT", "OUTPUT_EXCHANGE", fallback=None)
+        config_params["output_exchange_type"] = config.get("DEFAULT", "OUTPUT_EXCHANGE_TYPE", fallback=None)
+        config_params["output_queue_name"] = config.get("DEFAULT", "OUTPUT_QUEUE_NAME", fallback=None)
+
+        raw_filters = []
+        for i in range(config_params["amount_filters"]):
+            raw_filters.append(config.get("DEFAULT", "FILTER_"+str(i)))
+        config_params["raw_filters"] = raw_filters
+
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting packet-distributor".format(e))
     except ValueError as e:
@@ -40,7 +40,17 @@ def initialize_config():
 
 def main():
     config_params = initialize_config()
-    logging_level = config_params["logging_level"]
+    logging_level = config_params["logging_level"] 
+    amount_filters = config_params["amount_filters"]
+    select = config_params["select"] 
+    operators = config_params["operators"]
+    input_queue = config_params["input_queue"]
+    input_exchange = config_params["input_exchange"] 
+    input_exchange_type = config_params["input_exchange_type"]
+    output_exchange = config_params["output_exchange"]
+    output_exchange_type = config_params["output_exchange_type"]
+    output_queue_name = config_params["output_queue_name"]
+    raw_filters = config_params["raw_filters"]
 
     initialize_log(logging_level)
 
@@ -48,13 +58,13 @@ def main():
     # of the component
     logging.debug(f"action: config | result: success | logging_level: {logging_level}")
 
-    raw_filters = []
-    for i in range(CANTIDAD):
-        raw_filters.append(os.getenv('FILTER_'+str(i)))
+    # raw_filters = []
+    # for i in range(CANTIDAD):
+    #     raw_filters.append(os.getenv('FILTER_'+str(i)))
 
     try:
-        filter = Filter(SELECT, raw_filters, CANTIDAD, OPERATORS, INPUT_EXCHANGE, INPUT_EXCHANGE_TYPE, INPUT_QUEUE,
-                        OUTPUT_EXCHANGE, OUTPUT_EXCHANGE_TYPE, OUTPUT_QUEUE_NAME)
+        filter = Filter(select, raw_filters, amount_filters, operators, input_exchange, input_exchange_type, input_queue,
+                        output_exchange, output_exchange_type, output_queue_name)
         filter.run()
     except OSError as e:
         logging.error(f'action: initialize_distance_calculator | result: fail | error: {e}')
