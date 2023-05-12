@@ -33,7 +33,6 @@ def create_compose(args):
 
     env_vars = ["TRIP_PARSERS=", "WEATHER_PARSERS=", "STATION_PARSERS="]
 
-    # print(args.filter_trips_1)
     with open("docker-compose-dev.yaml", 'r') as file:
         data = yaml.safe_load(file)
 
@@ -114,6 +113,16 @@ def create_queues_file(args):
 
         data["groupby_query_3"]["writing"] = args.dist_calculator
         data["groupby_query_3"]["listening"] = 1
+
+        data["trip"]["writing"] = args.trip_parser
+        data["trip"]["listening"] = 1
+
+        data["weather"]["writing"] = 1
+        data["weather"]["listening"] = args.weather_parser
+
+        data["station"]["writing"] = 1
+        data["station"]["listening"] = args.station_parser
+
         queues.close()
         with open("./eof_manager/queues.json", "w") as outfile:
             outfile.write(json.dumps(data, indent=4))

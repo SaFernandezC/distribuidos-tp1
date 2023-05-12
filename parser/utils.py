@@ -43,20 +43,35 @@ def parse_stations(item, city):
 def send_eof(queue, msg):
     queue.send(json.dumps(msg))
 
-def handle_eof(msg, weathers_queue, trips_queue, stations_queue, eof_manager, routing_key):
+EOF_MSG_W=json.dumps({"type":"exchange", "exchange": "weathers"})
+EOF_MSG_T=json.dumps({"type":"exchange", "exchange": "trips"})
+EOF_MSG_S=json.dumps({"type":"exchange", "exchange": "stations"})
+
+def handle_eof(msg, weathers_queue, trips_queue, stations_queue, eof_manager, routing_key, channel):
     if routing_key == "weather":
-        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "weathers"}))
+        # eof_manager.send(body=EOF_MSG_W)
+        mesg = EOF_MSG_W
         # time.sleep(10)
         # send_eof(weathers_queue, msg)
     elif routing_key == "trip":
-        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "trips"}))
+        mesg = EOF_MSG_T
+        # eof_manager.send(body=EOF_MSG_T)
         # time.sleep(10)
         # send_eof(trips_queue, msg)
     elif routing_key == "station":
-        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": "stations"}))
+        mesg = EOF_MSG_S
+        # eof_manager.send(body=EOF_MSG_S)
         # time.sleep(10)
         # send_eof(stations_queue, msg)
+    channel.basic_publish(exchange='',
+                      routing_key='eof_manager',
+                      body=mesg)
 
-def send(queue, city, data, parser):
+def send(queue, city, data, parser, channel):
     for item in data:
-        queue.send(parser(item, city))
+        parsed = parser(item, city)
+
+        channel.basic_publish(exchange=queue,
+                            routing_key='',
+                            body=parsed)
+        # queue.send(parser(item, city))

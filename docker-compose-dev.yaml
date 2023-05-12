@@ -386,7 +386,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     - INPUT_QUEUE=raw_trips

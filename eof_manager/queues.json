@@ -41,7 +41,7 @@
     },
     "trip": {
         "writing": 1,
-        "listening": 2,
+        "listening": 1,
         "eof_received": 0
     },
     "weather": {

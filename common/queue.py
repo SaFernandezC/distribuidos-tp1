@@ -11,7 +11,8 @@ class Queue:
 
     def _declare(self, bind, exchange_type, routing_key):
         if self.exchange_name != '':
-            self.channel.exchange_declare(exchange=self.exchange_name, exchange_type=exchange_type, durable=True)
+            self.channel.exchange_declare(exchange=self.exchange_name, exchange_type=exchange_type)
+            # self.channel.exchange_declare(exchange=self.exchange_name, exchange_type=exchange_type, durable=True)
 
         if self.queue_name != '':
             self.channel.queue_declare(queue=self.queue_name, durable=True)
@@ -36,11 +37,10 @@ class Queue:
         self.channel.basic_publish(
             exchange=self.exchange_name,
             routing_key=routing_key,
-            body=body,
-            properties=pika.BasicProperties(delivery_mode=2)
+            body=body
         )
 
-    def recv(self, callback, start_consuming=True, auto_ack=True):
+    def recv(self, callback, start_consuming=True, auto_ack=False):
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(
             queue=self.queue_name,
