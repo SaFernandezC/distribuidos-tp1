@@ -3,6 +3,8 @@ from common.queue import Queue
 from dotenv import load_dotenv
 import json
 import functools
+import time
+import pika
 
 load_dotenv()
 
@@ -59,25 +61,51 @@ def callback(ch, method, properties, body, args):
     # print(line)
     if "eof" in line:
         ch.stop_consuming()
-        args[2].send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
+        # args[0].send(body=body)
+        # args[2].send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
+        ch.basic_publish(exchange='',
+                            routing_key='eof_manager',
+                            body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
     else:
         line['date'] = restar_dia(line['date'])
         # print(line)
-        args[0].send(body=json.dumps(line))
-    # ch.basic_ack(delivery_tag=method.delivery_tag)
+        # args[0].send(body=json.dumps(line))
+        ch.basic_publish(exchange=OUTPUT_EXCHANGE,
+                            routing_key='',
+                            body=json.dumps(line))
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
 
-    eof_manager = Queue(queue_name="eof_manager")
-    input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
-    output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
+    # eof_manager = Queue(queue_name="eof_manager")
+    # input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
+    # output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
 
-    on_message_callback = functools.partial(callback, args=(output_queue, input_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=True)
+    # on_message_callback = functools.partial(callback, args=(output_queue, input_queue, eof_manager))
+    # input_queue.recv(callback=on_message_callback, auto_ack=False)
 
-    input_queue.close()
-    output_queue.close()
-    eof_manager.close()
+
+    connection = pika.BlockingConnection(
+                                pika.ConnectionParameters(host='rabbitmq', heartbeat=1200))
+    channel = connection.channel()
+
+    result = channel.queue_declare(queue="eof_manager", durable=True)
+    eof_manager = result.method.queue
+
+    result = channel.queue_declare(queue=INPUT_QUEUE_NAME, durable=True)
+    input_queue = result.method.queue
+
+    channel.exchange_declare(exchange=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
+
+    on_message_callback = functools.partial(callback, args=("output_queue", input_queue, eof_manager))
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(queue=input_queue, on_message_callback=on_message_callback)
+    channel.start_consuming()
+
+    time.sleep(50)
+    # input_queue.close()
+    # output_queue.close()
+    # eof_manager.close()
     return 0
 
 

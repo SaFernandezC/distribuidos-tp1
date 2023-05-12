@@ -1,14 +1,17 @@
 import os
 from common.queue import Queue
+from common.Connection import Connection
+from common.Connection import Connection
 from dotenv import load_dotenv
 from utils import compare, apply_operator
 import json
 import functools
 import time
+import pika
 
 load_dotenv()
 
-CANTIDAD = os.getenv('CANT_CONDICIONES', 0)
+CANTIDAD = int(os.getenv('CANT_CONDICIONES', 0))
 SELECT = os.getenv('SELECT', None)
 OPERATORS = os.getenv('OPERATORS', None)
 
@@ -68,18 +71,35 @@ def apply_logic_operator(results, operators):
 #     for i in range(EOF_TO_SEND):
 #         queue.send(body=msg)
 #     queue.close()
-def send_eof(eof_manager):
+def send_eof(eof_manager, channel):
     if OUTPUT_EXCHANGE == '':
-        eof_manager.send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
+        # eof_manager.send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
+        channel.basic_publish(exchange='',
+                      routing_key='eof_manager',
+                      body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
     else:
-        eof_manager.send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
+        channel.basic_publish(exchange='',
+                      routing_key='eof_manager',
+                      body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
+        # eof_manager.send(body=json.dumps({"type":"exchange", "exchange": OUTPUT_EXCHANGE}))
+
+def send_msg(msg, channel):
+    if OUTPUT_EXCHANGE == '':
+        channel.basic_publish(exchange='',
+                      routing_key=OUTPUT_QUEUE_NAME,
+                      body=msg)
+    else:
+        channel.basic_publish(exchange=OUTPUT_EXCHANGE,
+                      routing_key='',
+                      body=msg)
+
 
 def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
-        print("RECIBO EOF ---> DEJO DE ESCUCHAR")
+        print(f"{time.asctime(time.localtime())} RECIBO EOF {line} ---> DEJO DE ESCUCHAR")
+        send_eof(args[6], ch)
         ch.stop_consuming()
-        send_eof(args[6])
     else:
         filtered = True
         filter_results = []
@@ -91,9 +111,10 @@ def callback(ch, method, properties, body, args):
             
         if filtered:
             body=json.dumps(select(args[0], line))
-            printer(select(args[0], line))
-            args[2].send(body=body)
-    # ch.basic_ack(delivery_tag=method.delivery_tag)
+            # print(f"{time.asctime(time.localtime())} FILTRADO {select(args[0], line)}")
+            # args[2].send(body=body)
+            send_msg(body, ch)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
     # Tomo las variables de entorno
@@ -107,23 +128,56 @@ def main():
     for i in range(cantidad_filtros):
         filters.append(os.getenv('FILTER_'+str(i)).split(','))
     
+    raw_filters = []
+    for i in range(cantidad_filtros):
+        raw_filters.append(os.getenv('FILTER_'+str(i)))
+    
     if OPERATORS and cantidad_filtros > 1:
         operators = OPERATORS.split(',')
     else: operators = None
 
-    eof_manager = Queue(queue_name="eof_manager")
-    input_queue = Queue(queue_name=INPUT_QUEUE, exchange_name=INPUT_EXCHANGE, bind=INPUT_BIND, exchange_type=INPUT_EXCHANGE_TYPE)
+    # eof_manager = Queue(queue_name="eof_manager")
+    # input_queue = Queue(queue_name=INPUT_QUEUE, exchange_name=INPUT_EXCHANGE, bind=INPUT_BIND, exchange_type=INPUT_EXCHANGE_TYPE)
 
-    if OUTPUT_EXCHANGE_TYPE == 'fanout':
-        output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
-    else:
-        output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
+    # if OUTPUT_EXCHANGE_TYPE == 'fanout':
+    #     output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
+    # else:
+    #     output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
 
 
     # print(' Waiting for messages. To exit press CTRL+C')
-    on_message_callback = functools.partial(callback, args=(fields_to_select, filters, output_queue, cantidad_filtros, operators, input_queue, eof_manager))
-    input_queue.recv(callback=on_message_callback, auto_ack=True)
+    # input_queue.recv(callback=on_message_callback, auto_ack=False)
 
+    # conn = Connection()
+    # eof_manager = conn.work_queue("eof_manager")
+
+    connection = pika.BlockingConnection(
+                                pika.ConnectionParameters(host='rabbitmq', heartbeat=1200))
+    channel = connection.channel()
+
+    result = channel.queue_declare(queue="eof_manager", durable=True)
+    eof_manager = result.method.queue
+
+    channel.exchange_declare(exchange=INPUT_EXCHANGE, exchange_type=INPUT_EXCHANGE_TYPE)
+    result = channel.queue_declare(queue=INPUT_QUEUE, durable=True)
+    input_queue = result.method.queue
+    channel.queue_bind(exchange=INPUT_EXCHANGE, queue=input_queue)
+
+    if OUTPUT_EXCHANGE_TYPE == 'fanout':
+        channel.exchange_declare(exchange=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
+        # output_queue = Queue(exchange_name=OUTPUT_EXCHANGE, exchange_type=OUTPUT_EXCHANGE_TYPE)
+    else:
+        result = channel.queue_declare(queue=OUTPUT_QUEUE_NAME, durable=True)
+        output_queue = result.method.queue
+        # output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
+
+
+    on_message_callback = functools.partial(callback, args=(fields_to_select, filters, "output_queue", cantidad_filtros, operators, input_queue, eof_manager))
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(queue=input_queue, on_message_callback=on_message_callback)
+    channel.start_consuming()
+
+    time.sleep(50)
 
 if __name__ == "__main__":
     main()

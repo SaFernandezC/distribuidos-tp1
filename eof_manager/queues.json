@@ -14,7 +14,7 @@
         "listening": 1,
         "eof_received": 0
     },
-    "joiner_query_2": {
+    "joiner_2": {
         "writing": 1,
         "listening": 1,
         "eof_received": 0
@@ -24,7 +24,7 @@
         "listening": 1,
         "eof_received": 0
     },
-    "joiner_query_3": {
+    "joiner_3": {
         "writing": 1,
         "listening": 1,
         "eof_received": 0
@@ -35,6 +35,21 @@
         "eof_received": 0
     },
     "groupby_query_3": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "trip": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "weather": {
+        "writing": 1,
+        "listening": 1,
+        "eof_received": 0
+    },
+    "station": {
         "writing": 1,
         "listening": 1,
         "eof_received": 0

@@ -7,4 +7,4 @@ RUN pip3 install python-dotenv
 COPY filter /
 COPY common /common
 
-CMD ["python3", "./filter.py"]
+CMD ["python3", "./main.py"]

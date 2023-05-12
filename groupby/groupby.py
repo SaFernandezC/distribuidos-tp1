@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 import functools
 from utils import default, find_dup_trips_year, find_stations_query_3
+import pika
 
 load_dotenv()
 
@@ -61,12 +62,17 @@ def callback(ch, method, properties, body, args):
     line = json.loads(body.decode())
     if "eof" in line:
         print("RECIBO EOF ---> DEJO DE ESCUCHAR y ENVIO DATA")
-        send_data(args[2])
         ch.stop_consuming()
-        return
+        # send_data(args[2])
+        function = eval(SEND_DATA_FUNCTION)
+        filtered = function(group_table)
+        ch.basic_publish(exchange='',
+                      routing_key=OUTPUT_QUEUE_NAME,
+                      body=json.dumps({"query": QUERY, "results": filtered}))
     else:
         group(args[0], line, args[1])
         # print("Group table: ", group_table)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def define_agg():
     if AGG == 'avg':
@@ -84,14 +90,30 @@ def main():
     key_1 = parse_key(PRIMARY_KEY)
     agg_function = define_agg()
 
-    input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
-    output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
+    # input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
+    # output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
+
+    # on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue))
+    # input_queue.recv(callback=on_message_callback, auto_ack=False)
+
+
+    connection = pika.BlockingConnection(
+                                pika.ConnectionParameters(host='rabbitmq', heartbeat=1200))
+    channel = connection.channel()
+
+    result = channel.queue_declare(queue=INPUT_QUEUE_NAME, durable=True)
+    input_queue = result.method.queue
+
+    result = channel.queue_declare(queue=OUTPUT_QUEUE_NAME, durable=True)
+    output_queue = result.method.queue
 
     on_message_callback = functools.partial(callback, args=(key_1, agg_function, output_queue))
-    input_queue.recv(callback=on_message_callback)
+    channel.basic_qos(prefetch_count=1)
+    channel.basic_consume(queue=input_queue, on_message_callback=on_message_callback)
+    channel.start_consuming()
 
-    input_queue.close()
-    output_queue.close()
+    # input_queue.close()
+    # output_queue.close()
     return 0
 
 

@@ -148,7 +148,7 @@ services:
     - INPUT_EXCHANGE_TYPE=fanout
     - INPUT_QUEUE=filter_trips_query3
     - INPUT_BIND=True
-    - OUTPUT_QUEUE_NAME=joiner_query_3
+    - OUTPUT_QUEUE_NAME=joiner_3
     - CANT_CONDICIONES=1
     - FILTER_0=1,string,city,eq,montreal
     - SELECT=start_station_code,end_station_code,yearid
@@ -171,7 +171,7 @@ services:
     - INPUT_EXCHANGE_TYPE=fanout
     - INPUT_QUEUE=filter_trips_year
     - INPUT_BIND=True
-    - OUTPUT_QUEUE_NAME=joiner_query_2
+    - OUTPUT_QUEUE_NAME=joiner_2
     - SELECT=city,start_station_code,yearid
     - CANT_CONDICIONES=2
     - FILTER_0=1,int,yearid,eq,2016
@@ -274,7 +274,7 @@ services:
     - INPUT_EXCHANGE_1=joiner_query_2
     - INPUT_EXCHANGE_TYPE_1=fanout
     - INPUT_BIND_1=True
-    - INPUT_QUEUE_NAME_2=joiner_query_2
+    - INPUT_QUEUE_NAME_2=joiner_2
     - OUTPUT_QUEUE_NAME=groupby_query_2
     - PRIMARY_KEY=city,code,yearid
     - PRIMARY_KEY_2=city,start_station_code,yearid
@@ -298,7 +298,7 @@ services:
     - INPUT_EXCHANGE_1=joiner_query_3
     - INPUT_EXCHANGE_TYPE_1=fanout
     - INPUT_BIND_1=True
-    - INPUT_QUEUE_NAME_2=joiner_query_3
+    - INPUT_QUEUE_NAME_2=joiner_3
     - OUTPUT_QUEUE_NAME=distance_calculator
     - PRIMARY_KEY=code,yearid
     - JOINER_FUNCTION=join_func_query3
