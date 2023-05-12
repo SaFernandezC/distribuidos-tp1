@@ -56,23 +56,23 @@ def main():
 
         weathers = {
             "montreal": "./data/montreal/weather.csv",
-            # "toronto": "./data/toronto/weather.csv",
-            # "washington": "./data/washington/weather.csv"
+            "toronto": "./data/toronto/weather.csv",
+            "washington": "./data/washington/weather.csv"
         }
 
         client.send_weathers(weathers)
 
         stations = {
             "montreal": "./data/montreal/stations.csv",
-            # "toronto": "./data/toronto/stations.csv",
-            # "washington": "./data/washington/stations.csv"
+            "toronto": "./data/toronto/stations.csv",
+            "washington": "./data/washington/stations.csv"
         }
         client.send_stations(stations)
         
         trips = {
             "montreal": "./data/montreal/reduced_trips_montreal.csv",
-            # "toronto": "./data/toronto/reduced_trips_toronto.csv",
-            # "washington": "./data/washington/reduced_trips_washington.csv"
+            "toronto": "./data/toronto/reduced_trips_toronto.csv",
+            "washington": "./data/washington/reduced_trips_washington.csv"
         }
 
         client.send_trips(trips)
