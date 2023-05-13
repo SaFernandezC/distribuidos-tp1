@@ -13,7 +13,7 @@ services:
         condition: service_healthy
     environment:
     - PYTHONUNBUFFERED=1
-    - TRIP_PARSERS=1
+    - TRIP_PARSERS=5
     - WEATHER_PARSERS=1
     - STATION_PARSERS=1
     image: accepter:latest
@@ -72,81 +72,81 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    volumes:
-      - ./filter/config/config_filter_station_2.ini:/config.ini
     image: filter:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./filter/config/config_filter_station_2.ini:/config.ini
   filter_stations_query3:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 3
     environment:
     - PYTHONUNBUFFERED=1
-    volumes:
-      - ./filter/config/config_filter_station_3.ini:/config.ini
     image: filter:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./filter/config/config_filter_station_3.ini:/config.ini
   filter_trips_query1:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 5
     environment:
     - PYTHONUNBUFFERED=1
-    volumes:
-      - ./filter/config/config_filter_trips_1.ini:/config.ini
     image: filter:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./filter/config/config_filter_trips_1.ini:/config.ini
   filter_trips_query3:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 3
     environment:
     - PYTHONUNBUFFERED=1
-    volumes:
-      - ./filter/config/config_filter_trips_3.ini:/config.ini
     image: filter:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./filter/config/config_filter_trips_3.ini:/config.ini
   filter_trips_year:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    volumes:
-      - ./filter/config/config_filter_trips_2.ini:/config.ini
     image: filter:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./filter/config/config_filter_trips_2.ini:/config.ini
   groupby_query_1:
     container_name: groupby_query_1
     depends_on:
@@ -210,7 +210,7 @@ services:
     - date_modifier
     - parser
     deploy:
-      replicas: 1
+      replicas: 5
     environment:
     - PYTHONUNBUFFERED=1
     - INPUT_EXCHANGE_1=joiner_query_1
@@ -232,7 +232,7 @@ services:
     - filter_stations_query2
     - filter_trips_year
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     - INPUT_EXCHANGE_1=joiner_query_2
@@ -243,7 +243,6 @@ services:
     - PRIMARY_KEY=city,code,yearid
     - PRIMARY_KEY_2=city,start_station_code,yearid
     - SELECT=name,yearid
-    - NEEDED_EOF_1=1
     - JOINER_FUNCTION=default
     image: joiner:latest
     links:
@@ -280,14 +279,14 @@ services:
       replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
-    volumes:
-      - ./filter/config/config_filter_weather_1.ini:/config.ini
     image: filter:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./filter/config/config_filter_weather_1.ini:/config.ini
   rabbitmq:
     build:
       context: ./rabbitmq
@@ -344,7 +343,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 5
     environment:
     - PYTHONUNBUFFERED=1
     - INPUT_QUEUE=raw_trips

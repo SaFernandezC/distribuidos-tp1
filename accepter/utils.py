@@ -4,6 +4,7 @@ def callback_queue1(ch, method, properties, body, args):
     data = body.decode()
     args[0].put(data)
     ch.stop_consuming()
+    ch.basic_ack(delivery_tag=method.delivery_tag)
  
 
 def asker(metrics_queue, results_queue):

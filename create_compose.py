@@ -114,8 +114,8 @@ def create_queues_file(args):
         data["groupby_query_3"]["writing"] = args.dist_calculator
         data["groupby_query_3"]["listening"] = 1
 
-        data["trip"]["writing"] = args.trip_parser
-        data["trip"]["listening"] = 1
+        data["trip"]["writing"] = 1
+        data["trip"]["listening"] = args.trip_parser
 
         data["weather"]["writing"] = 1
         data["weather"]["listening"] = args.weather_parser
