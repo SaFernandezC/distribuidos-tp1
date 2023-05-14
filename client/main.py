@@ -71,7 +71,7 @@ def main():
         
         trips = {
             "montreal": "./data/montreal/reduced_trips_montreal.csv",
-            "toronto": "./data/toronto/reduced_trips_toronto.csv",
+            "toronto": "./data/toronto/1500000_trips_toronto.csv",
             "washington": "./data/washington/reduced_trips_washington.csv"
         }
 

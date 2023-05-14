@@ -1,7 +1,7 @@
 import os
 from common.queue import Queue
 from dotenv import load_dotenv
-import json
+import ujson as json
 import functools
 from utils import default, join_func_query3
 import time

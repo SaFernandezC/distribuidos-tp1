@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 import os
 import logging
-import json
+import ujson as json
 
 SEND_WEATHERS = 'W'
 SEND_STATIONS = 'S'

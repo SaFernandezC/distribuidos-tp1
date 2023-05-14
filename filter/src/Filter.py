@@ -1,6 +1,6 @@
 from utils import compare, apply_operator
 from common.Connection import Connection
-import json
+import ujson as json
 
 SIN_FILTROS = 0
 SIN_SELECCIONES = 0

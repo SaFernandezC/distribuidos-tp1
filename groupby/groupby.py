@@ -1,7 +1,7 @@
 import os
 from common.queue import Queue
 from dotenv import load_dotenv
-import json
+import ujson as json
 import functools
 from utils import default, find_dup_trips_year, find_stations_query_3
 import pika

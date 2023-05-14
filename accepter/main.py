@@ -1,4 +1,4 @@
-import json
+import ujson as json
 from common.queue import Queue
 from configparser import ConfigParser
 from server import Server

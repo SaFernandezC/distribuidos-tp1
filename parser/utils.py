@@ -1,4 +1,4 @@
-import json
+import ujson as json
 
 def parse_weathers(item, city):
     item = item.split(',')

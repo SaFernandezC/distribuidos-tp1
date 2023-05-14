@@ -1,4 +1,4 @@
-import json
+import ujson as json
 from common.queue import Queue
 import logging
 import os

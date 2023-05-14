@@ -6,7 +6,7 @@ import multiprocessing
 from common.queue import Queue
 from utils import asker
 import time
-import json
+import ujson as json
 import pika
 
 FINISH = 'F'
