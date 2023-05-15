@@ -1,6 +1,7 @@
 from utils import compare, apply_operator
 from common.Connection import Connection
 import ujson as json
+import time
 
 SIN_FILTROS = 0
 SIN_SELECCIONES = 0
@@ -15,12 +16,12 @@ class Filter:
         self.operators = self._parse_operators(operators)
 
         self.connection = Connection()
-        self.eof_manager = self.connection.EofProducer(output_exchange, output_queue_name)
+        self.eof_manager = self.connection.EofProducer(output_exchange, output_queue_name, input_queue_name)
 
         self.input_queue = self.connection.Subscriber(exchange_name=input_exchange, exchange_type=input_exchange_type, queue_name=input_queue_name)
 
         if output_exchange_type == 'fanout':
-            self.output_queue = self.connection.Publisher(exchange_name=output_exchange, exchange_type=output_exchange_type)
+            self.output_queue = self.connection.Publisher(output_exchange, output_exchange_type)
         else: self.output_queue = self.connection.Producer(queue_name=output_queue_name)
 
 
@@ -75,13 +76,15 @@ class Filter:
     def run(self):
         self.input_queue.receive(self._callback)
         self.connection.start_consuming()
-        return 0
+        self.connection.close()
+        # time.sleep(15)
 
     def _callback(self, body):
         line = json.loads(body.decode())
         if "eof" in line:
-            self.eof_manager.send_eof()
             self.connection.stop_consuming()
+            self.eof_manager.send_eof()
+            print("Recibo eof -> Envio EOF")
         else:
             filtered = True
             filter_results = []

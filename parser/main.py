@@ -1,5 +1,5 @@
 from configparser import ConfigParser
-from src.eof_manager import EofManager
+from src.parser import Parser
 import logging
 import os
 
@@ -11,6 +11,11 @@ def initialize_config():
     config_params = {}
     try:
         config_params["logging_level"] = config.get("DEFAULT", "LOGGING_LEVEL", fallback=None)
+        config_params["input_queue"] = config.get("DEFAULT", "INPUT_QUEUE", fallback=None)
+        config_params["routing_key"] = config.get("DEFAULT", "ROUTING_KEY", fallback=None)
+        config_params["output_exchange"] = config.get("DEFAULT", "OUTPUT_EXCHANGE", fallback=None)
+        config_params["output_exchange_type"] = config.get("DEFAULT", "OUTPUT_EXCHANGE_TYPE", fallback=None)
+
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting packet-distributor".format(e))
     except ValueError as e:
@@ -22,6 +27,11 @@ def initialize_config():
 def main():
     config_params = initialize_config()
     logging_level = config_params["logging_level"] 
+    input_queue = config_params["input_queue"]
+    routing_key = config_params["routing_key"] 
+    output_exchange = config_params["output_exchange"]
+    output_exchange_type = config_params["output_exchange_type"]
+
 
     initialize_log(logging_level)
 
@@ -30,8 +40,8 @@ def main():
     logging.debug(f"action: config | result: success | logging_level: {logging_level}")
 
     try:
-        eof_manager = EofManager()
-        eof_manager.run()
+        parser = Parser(input_queue, routing_key, output_exchange, output_exchange_type)
+        parser.run()
     except OSError as e:
         logging.error(f'action: initialize_distance_calculator | result: fail | error: {e}')
 

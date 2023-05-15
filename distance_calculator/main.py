@@ -1,65 +1,59 @@
+from configparser import ConfigParser
+from src.distance_calculator import DistanceCalculator
+import logging
 import os
-from common.queue import Queue
-from dotenv import load_dotenv
-import ujson as json
-import functools
-from haversine import haversine
-import time
-import pika
-
-load_dotenv()
-
-INPUT_QUEUE_NAME = os.getenv('INPUT_QUEUE_NAME')
-OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME')
 
 
-def callback(ch, method, properties, body, args):
-    line = json.loads(body.decode())
-    if "eof" in line:
-        # args[0].send(body=body) # AGREFAR EOF MANAGER ACA
-        ch.stop_consuming()
-        # args[1].send(body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
-        ch.basic_publish(exchange='',
-                            routing_key='eof_manager',
-                            body=json.dumps({"type":"work_queue", "queue": OUTPUT_QUEUE_NAME}))
-    else:
-        distance = haversine((line['start_latitude'], line['start_longitude']), (line['end_latitude'], line['end_longitude']))
-        res = {"end_name": line["end_name"], "distance": distance}
-        # args[0].send(body=json.dumps(res))
-        ch.basic_publish(exchange='',
-                            routing_key=OUTPUT_QUEUE_NAME,
-                            body=json.dumps(res))
+def initialize_config():
+    config = ConfigParser(os.environ)
+    # If config.ini does not exists original config object is not modified
+    config.read("config.ini")
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    config_params = {}
+    try:
+        config_params["logging_level"] = config.get("DEFAULT", "LOGGING_LEVEL", fallback=None)
+        config_params["input_queue_name"] = config.get("DEFAULT", "INPUT_QUEUE_NAME", fallback=None)
+        config_params["output_queue_name"] = config.get("DEFAULT", "OUTPUT_QUEUE_NAME", fallback=None)
+
+    except KeyError as e:
+        raise KeyError("Key was not found. Error: {} .Aborting packet-distributor".format(e))
+    except ValueError as e:
+        raise ValueError("Key could not be parsed. Error: {}. Aborting packet-distributor".format(e))
+
+    return config_params
+
 
 def main():
+    config_params = initialize_config()
+    logging_level = config_params["logging_level"] 
+    input_queue_name = config_params["input_queue_name"]
+    output_queue_name = config_params["output_queue_name"]
 
-    # input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
-    # output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
-    # eof_manager = Queue(queue_name="eof_manager")
+    initialize_log(logging_level)
 
-    # on_message_callback = functools.partial(callback, args=(output_queue, eof_manager))
-    # input_queue.recv(callback=on_message_callback, auto_ack=False)
+    # Log config parameters at the beginning of the program to verify the configuration
+    # of the component
+    logging.debug(f"action: config | result: success | logging_level: {logging_level}")
 
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=1200))
-    channel = connection.channel()
+    try:
+        date_modifier = DistanceCalculator(input_queue_name, output_queue_name)
+        date_modifier.run()
+    except OSError as e:
+        logging.error(f'action: initialize_distance_calculator | result: fail | error: {e}')
 
-    result = channel.queue_declare(queue="eof_manager", durable=True)
-    eof_manager = result.method.queue
+def initialize_log(logging_level):
+    """
+    Python custom logging initialization
 
-    result = channel.queue_declare(queue=INPUT_QUEUE_NAME, durable=True)
-    input_queue = result.method.queue
+    Current timestamp is added to be able to identify in docker
+    compose logs the date when the log has arrived
+    """
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging_level,
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
 
-    result = channel.queue_declare(queue=OUTPUT_QUEUE_NAME, durable=True)
-    output_queue = result.method.queue
-
-
-    on_message_callback = functools.partial(callback, args=("output_queue", input_queue, eof_manager))
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=input_queue, on_message_callback=on_message_callback)
-    channel.start_consuming()
-
-    time.sleep(50)
 
 if __name__ == "__main__":
     main()

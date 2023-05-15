@@ -1,12 +1,15 @@
-import functools
+class Asker():
+    def __init__(self, connection, metrics_queue, results_queue):
+        self.connection = connection
+        self.metrics_queue = metrics_queue
+        self.results_queue = results_queue
 
-def callback_queue1(ch, method, properties, body, args):
-    data = body.decode()
-    args[0].put(data)
-    ch.stop_consuming()
-    ch.basic_ack(delivery_tag=method.delivery_tag)
- 
+    def run(self):
+        self.metrics_queue.receive(self._callback)
+        self.connection.start_consuming()
+        self.connection.close()
 
-def asker(metrics_queue, results_queue):
-    on_message_callback = functools.partial(callback_queue1, args=(results_queue,))
-    metrics_queue.recv(callback=on_message_callback)
+    def _callback(self, body):
+        data = body.decode()
+        self.results_queue.put(data)
+        self.connection.stop_consuming()

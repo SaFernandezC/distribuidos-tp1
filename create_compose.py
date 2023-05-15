@@ -36,10 +36,6 @@ def create_compose(args):
     with open("docker-compose-dev.yaml", 'r') as file:
         data = yaml.safe_load(file)
 
-        data["services"]["accepter"]["environment"][1] = env_vars[0]+str(args.trip_parser)
-        data["services"]["accepter"]["environment"][2] = env_vars[1]+str(args.weather_parser)
-        data["services"]["accepter"]["environment"][3] = env_vars[2]+str(args.station_parser)
-
         data["services"]["trip_parser"]["deploy"]["replicas"] = args.trip_parser
         data["services"]["station_parser"]["deploy"]["replicas"] = args.station_parser
         data["services"]["weather_parser"]["deploy"]["replicas"] = args.weather_parser

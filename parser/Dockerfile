@@ -7,4 +7,4 @@ RUN pip3 install ujson
 COPY parser /
 COPY common /common
 
-CMD ["python3", "./parser.py"]
+CMD ["python3", "./main.py"]

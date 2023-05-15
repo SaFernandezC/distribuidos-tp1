@@ -8,4 +8,4 @@ RUN pip3 install ujson
 COPY joiner /
 COPY common /common
 
-CMD ["python3", "./joiner.py"]
+CMD ["python3", "./main.py"]

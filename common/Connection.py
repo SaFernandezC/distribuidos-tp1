@@ -8,8 +8,8 @@ class Connection:
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=1800))
         self.channel = self.connection.channel()
 
-    def Consumer(self, queue_name, callback):
-        return WorkQueue(self.channel, queue_name, callback)
+    def Consumer(self, queue_name):
+        return WorkQueue(self.channel, queue_name)
 
     def Producer(self, queue_name):
         return WorkQueue(self.channel, queue_name)
@@ -20,11 +20,17 @@ class Connection:
     def Subscriber(self, exchange_name, exchange_type, queue_name=None):
         return ExchangeQueue(self.channel, exchange_name, exchange_type, queue_name)
 
-    def EofProducer(self, output_exchange, output_queue):
-        return EofQueue(self.channel, output_exchange, output_queue)
+    def EofProducer(self, output_exchange, output_queue, input_queue):
+        return EofQueue(self.channel, output_exchange, output_queue, input_queue)
+    
+    # def EofConsumer(self, output_exchange, output_queue, input_queue):
+    #     return EofQueue(self.channel, output_exchange, output_queue, input_queue)
 
     def start_consuming(self):
         self.channel.start_consuming()
 
     def stop_consuming(self):
         self.channel.stop_consuming()
+
+    def close(self):
+        self.channel.close()

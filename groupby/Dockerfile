@@ -8,4 +8,4 @@ RUN pip3 install ujson
 COPY groupby /
 COPY common /common
 
-CMD ["python3", "./groupby.py"]
+CMD ["python3", "./main.py"]

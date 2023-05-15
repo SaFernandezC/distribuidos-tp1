@@ -1,52 +1,60 @@
+from configparser import ConfigParser
+from src.status_controller import StatusController
+import logging
 import os
-from common.queue import Queue
-from dotenv import load_dotenv
-import ujson as json
-import functools
-import pika 
 
-load_dotenv()
+def initialize_config():
+    config = ConfigParser(os.environ)
+    # If config.ini does not exists original config object is not modified
+    config.read("config.ini")
 
-INPUT_QUEUE_NAME = os.getenv('INPUT_QUEUE_NAME', '')
-OUTPUT_QUEUE_NAME = os.getenv('OUTPUT_QUEUE_NAME', '')
-QTY_OF_QUERIES = int(os.getenv('QTY_OF_QUERIES', ''))
+    config_params = {}
+    try:
+        config_params["logging_level"] = config.get("DEFAULT", "LOGGING_LEVEL", fallback=None)
+        config_params["qty_of_queries"] = int(config.get("DEFAULT", "QTY_OF_QUERIES", fallback=None))
+        config_params["input_queue_name"] = config.get("DEFAULT", "INPUT_QUEUE_NAME", fallback=None)
+        config_params["output_queue_name"] = config.get("DEFAULT", "OUTPUT_QUEUE_NAME", fallback=None)
 
-data = {}
+    except KeyError as e:
+        raise KeyError("Key was not found. Error: {} .Aborting packet-distributor".format(e))
+    except ValueError as e:
+        raise ValueError("Key could not be parsed. Error: {}. Aborting packet-distributor".format(e))
 
-def callback(ch, method, properties, body, args):
-    line = json.loads(body.decode())
-    data[line["query"]] = line["results"]
-    print(line)
+    return config_params
 
-    if len(data) == QTY_OF_QUERIES:
-        # args[0].send(body=json.dumps(data))
-        ch.basic_publish(exchange='',
-                      routing_key=OUTPUT_QUEUE_NAME,
-                      body=json.dumps(data))
-        print("Resultado: ", data)
-    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def main():
-    # input_queue = Queue(queue_name=INPUT_QUEUE_NAME)
-    # output_queue = Queue(queue_name=OUTPUT_QUEUE_NAME)
+    config_params = initialize_config()
+    logging_level = config_params["logging_level"] 
+    input_queue_name = config_params["input_queue_name"]
+    output_queue_name = config_params["output_queue_name"]
+    qty_of_queries = config_params["qty_of_queries"] 
 
-    # on_message_callback = functools.partial(callback, args=(output_queue,))
-    # input_queue.recv(callback=on_message_callback)
 
-    connection = pika.BlockingConnection(
-                                pika.ConnectionParameters(host='rabbitmq', heartbeat=1200))
-    channel = connection.channel()
+    initialize_log(logging_level)
 
-    result = channel.queue_declare(queue=INPUT_QUEUE_NAME, durable=True)
-    input_queue = result.method.queue
+    # Log config parameters at the beginning of the program to verify the configuration
+    # of the component
+    logging.debug(f"action: config | result: success | logging_level: {logging_level}")
 
-    result = channel.queue_declare(queue=OUTPUT_QUEUE_NAME, durable=True)
-    output_queue = result.method.queue
+    try:
+        status_controller = StatusController(input_queue_name, output_queue_name, qty_of_queries)
+        status_controller.run()
+    except OSError as e:
+        logging.error(f'action: initialize_distance_calculator | result: fail | error: {e}')
 
-    on_message_callback = functools.partial(callback, args=(output_queue,))
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=input_queue, on_message_callback=on_message_callback)
-    channel.start_consuming()
+def initialize_log(logging_level):
+    """
+    Python custom logging initialization
+
+    Current timestamp is added to be able to identify in docker
+    compose logs the date when the log has arrived
+    """
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging_level,
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
 
 
 if __name__ == "__main__":

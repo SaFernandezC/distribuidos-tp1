@@ -13,9 +13,6 @@ services:
         condition: service_healthy
     environment:
     - PYTHONUNBUFFERED=1
-    - TRIP_PARSERS=1
-    - WEATHER_PARSERS=1
-    - STATION_PARSERS=1
     image: accepter:latest
     links:
     - rabbitmq
@@ -26,34 +23,33 @@ services:
     depends_on:
     - prectot_filter
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_QUEUE_NAME=date_modifier
-    - OUTPUT_EXCHANGE=joiner_query_1
-    - OUTPUT_EXCHANGE_TYPE=fanout
     image: date_modifier:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./date_modifier/config.ini:/config.ini
   distance_calculator:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_QUEUE_NAME=distance_calculator
-    - OUTPUT_QUEUE_NAME=groupby_query_3
     image: distance_calculator:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./distance_calculator/config.ini:/config.ini
   eof_manager:
     container_name: eof_manager
     depends_on:
@@ -72,7 +68,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -88,7 +84,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -104,7 +100,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -120,7 +116,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -136,7 +132,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -153,38 +149,28 @@ services:
     - joiner_query_1
     environment:
     - PYTHONUNBUFFERED=1
-    - QUERY=query1
-    - INPUT_QUEUE_NAME=groupby_query_1
-    - OUTPUT_QUEUE_NAME=status_controller
-    - PRIMARY_KEY=start_date
-    - AGG=avg
-    - FIELD_TO_AGREGATE=duration_sec
     image: groupby:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./groupby/config/config_groupby_1.ini:/config.ini
   groupby_query_2:
     container_name: groupby_query_2
     depends_on:
     - joiner_query_2
     environment:
     - PYTHONUNBUFFERED=1
-    - QUERY=2
-    - INPUT_QUEUE_NAME=groupby_query_2
-    - OUTPUT_QUEUE_NAME=status_controller
-    - PRIMARY_KEY=name
-    - AGG=count
-    - FIELD_TO_AGREGATE=yearid
-    - QUERY=query2
-    - SEND_DATA_FUNCTION=find_dup_trips_year
     image: groupby:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./groupby/config/config_groupby_2.ini:/config.ini
   groupby_query_3:
     container_name: groupby_query_3
     depends_on:
@@ -192,91 +178,68 @@ services:
         condition: service_healthy
     environment:
     - PYTHONUNBUFFERED=1
-    - QUERY=query3
-    - INPUT_QUEUE_NAME=groupby_query_3
-    - OUTPUT_QUEUE_NAME=status_controller
-    - PRIMARY_KEY=end_name
-    - AGG=avg
-    - FIELD_TO_AGREGATE=distance
-    - SEND_DATA_FUNCTION=find_stations_query_3
     image: groupby:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./groupby/config/config_groupby_3.ini:/config.ini
   joiner_query_1:
     depends_on:
     - date_modifier
     - parser
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_EXCHANGE_1=joiner_query_1
-    - INPUT_EXCHANGE_TYPE_1=fanout
-    - INPUT_BIND_1=True
-    - INPUT_QUEUE_NAME_2=joiner_1
-    - OUTPUT_QUEUE_NAME=groupby_query_1
-    - PRIMARY_KEY=city,date
-    - PRIMARY_KEY_2=city,start_date
-    - SELECT=start_date,duration_sec
     image: joiner:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./joiner/config/config_joiner_1.ini:/config.ini
   joiner_query_2:
     depends_on:
     - filter_stations_query2
     - filter_trips_year
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_EXCHANGE_1=joiner_query_2
-    - INPUT_EXCHANGE_TYPE_1=fanout
-    - INPUT_BIND_1=True
-    - INPUT_QUEUE_NAME_2=joiner_2
-    - OUTPUT_QUEUE_NAME=groupby_query_2
-    - PRIMARY_KEY=city,code,yearid
-    - PRIMARY_KEY_2=city,start_station_code,yearid
-    - SELECT=name,yearid
-    - JOINER_FUNCTION=default
     image: joiner:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./joiner/config/config_joiner_2.ini:/config.ini
   joiner_query_3:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_EXCHANGE_1=joiner_query_3
-    - INPUT_EXCHANGE_TYPE_1=fanout
-    - INPUT_BIND_1=True
-    - INPUT_QUEUE_NAME_2=joiner_3
-    - OUTPUT_QUEUE_NAME=distance_calculator
-    - PRIMARY_KEY=code,yearid
-    - JOINER_FUNCTION=join_func_query3
     image: joiner:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./joiner/config/config_joiner_3.ini:/config.ini
   prectot_filter:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -311,17 +274,17 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_QUEUE=raw_stations
-    - ROUTING_KEY=station
     image: parser:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./parser/config/config_station_parser.ini:/config.ini
   status_controller:
     container_name: status_controller
     depends_on:
@@ -329,45 +292,44 @@ services:
         condition: service_healthy
     environment:
     - PYTHONUNBUFFERED=1
-    - QTY_OF_QUERIES=3
-    - INPUT_QUEUE_NAME=status_controller
-    - OUTPUT_QUEUE_NAME=metrics
     image: status_controller:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./status_controller/config.ini:/config.ini
   trip_parser:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_QUEUE=raw_trips
-    - ROUTING_KEY=trip
     image: parser:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./parser/config/config_trip_parser.ini:/config.ini
   weather_parser:
     depends_on:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 1
+      replicas: 2
     environment:
     - PYTHONUNBUFFERED=1
-    - INPUT_QUEUE=raw_weathers
-    - ROUTING_KEY=weather
     image: parser:latest
     links:
     - rabbitmq
     networks:
     - testing_net
     restart: on-failure
+    volumes:
+    - ./parser/config/config_weather_parser.ini:/config.ini
 version: '3'

@@ -3,11 +3,9 @@ import signal
 from socket_wrapper import Socket
 from protocol import Protocol
 import multiprocessing
-from common.queue import Queue
-from utils import asker
-import time
+from common.Connection import Connection
+from utils import Asker
 import ujson as json
-import pika
 
 FINISH = 'F'
 SEND_DATA = 'D'
@@ -18,65 +16,73 @@ SEND_TRIPS = 'T'
 ASK_DATA = 'A'
 
 class Server:
-    def __init__(self, port, listen_backlog, trip_parsers, weather_parsers, station_parsers):
+    def __init__(self, port, listen_backlog):
         self._server_socket = Socket()
         self._server_socket.bind('', port)
         self._server_socket.listen(listen_backlog)
 
-        self.trip_parsers = trip_parsers
-        self.weather_parsers = weather_parsers
-        self.station_parsers = station_parsers
+        # self.trip_parsers = trip_parsers
+        # self.weather_parsers = weather_parsers
+        # self.station_parsers = station_parsers
         
         self.is_alive = True
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
         self.protocol = Protocol()
+
+        self.connection = Connection()
+
+        self.metrics_queue = self.connection.Consumer(queue_name='metrics')
+
+        self.trips_queue = self.connection.Producer(queue_name="trip")
+        self.weathers_queue = self.connection.Producer(queue_name="weather")
+        self.stations_queue = self.connection.Producer(queue_name="station")
+
+        self.eof_manager = self.connection.EofProducer(None, None, None)
+
         # self.queue = Queue(exchange_name='raw_data', exchange_type='direct')
-        self.metrics_queue = Queue(queue_name="metrics")
+        # self.metrics_queue = Queue(queue_name="metrics")
 
-        self.trips_queue = Queue(queue_name="trip")
-        self.weathers_queue = Queue(queue_name="weather")
-        self.stations_queue = Queue(queue_name="station")
+        # self.trips_queue = Queue(queue_name="trip")
+        # self.weathers_queue = Queue(queue_name="weather")
+        # self.stations_queue = Queue(queue_name="station")
 
-        self.eof_manager = Queue(queue_name="eof_manager")
-
-
+        # self.eof_manager = Queue(queue_name="eof_manager")
 
         self.results_queue = multiprocessing.Queue()
-        self.ask_results = multiprocessing.Process(target=asker, args=(self.metrics_queue, self.results_queue))
+        self.asker = Asker(self.connection, self.metrics_queue, self.results_queue)
+        self.ask_results = multiprocessing.Process(target=self.asker.run, args=())
 
 
     def recv_data(self, client_sock, key):
         logging.debug(f'action: receiving data')
         data = self.protocol.recv_data(client_sock)
-        # self.queue.send(body=data, routing_key=key)
         if key == "trip":
-            self.trips_queue.send(body=data)
+            self.trips_queue.send(data)
         elif key == "station":
-            self.stations_queue.send(body=data)
+            self.stations_queue.send(data)
         else:
-            self.weathers_queue.send(body=data)
+            self.weathers_queue.send(data)
         self.protocol.send_ack(client_sock, True)
 
-    def calculate_eof(self, key):
-        if key == "trip": 
-            return self.trip_parsers
-        elif key == "station":
-             return self.station_parsers
-        else: return self.weather_parsers
+    # def calculate_eof(self, key):
+    #     if key == "trip": 
+    #         return self.trip_parsers
+    #     elif key == "station":
+    #          return self.station_parsers
+    #     else: return self.weather_parsers
 
-    def send_eof(self, data, key):
-        self.eof_manager.send(body=json.dumps({"type":"work_queue", "queue": key}))
+    def send_eof(self, key):
+        self.eof_manager.send_eof(json.dumps({"type":"work_queue", "queue": key}))
 
     def recv_eof(self, client_sock, key): 
         logging.debug(f'action: receiving eof')
         data = self.protocol.recv_data(client_sock)
         # print("Data eof:", data)
-        self.send_eof(data, key)
+        self.send_eof(key)
         self.protocol.send_ack(client_sock, True)
 
     def ask_for_data(self, client_sock):
-
         if self.results_queue.empty():
             self.protocol.send_result(client_sock, False)
         else:
