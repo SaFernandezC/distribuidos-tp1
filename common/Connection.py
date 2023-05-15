@@ -15,10 +15,10 @@ class Connection:
         return WorkQueue(self.channel, queue_name)
 
     def Publisher(self, exchange_name, exchange_type):
-        return ExchangeQueue(self.channel, exchange_name, exchange_type)
+        return ExchangeQueue("pub", self.channel, exchange_name, exchange_type)
 
     def Subscriber(self, exchange_name, exchange_type, queue_name=None):
-        return ExchangeQueue(self.channel, exchange_name, exchange_type, queue_name)
+        return ExchangeQueue("sub", self.channel, exchange_name, exchange_type, queue_name)
 
     def EofProducer(self, output_exchange, output_queue, input_queue):
         return EofQueue(self.channel, output_exchange, output_queue, input_queue)

@@ -1,14 +1,18 @@
 import pika
 
+PUBLISHER = "pub"
+SUBSCRIBER = "sub"
+
 class ExchangeQueue():
-    def __init__(self, channel, exchange_name, exchange_type, queue_name=None):
+    def __init__(self, type, channel, exchange_name, exchange_type, queue_name=None):
         
         self.channel = channel
         self.exchange_name = exchange_name
         self.exchange_type = exchange_type
         self.user_callback = None
         channel.exchange_declare(exchange=exchange_name, exchange_type=exchange_type)
-        self.queue_name = self._declare_queue(exchange_name, queue_name)
+        if type == SUBSCRIBER:
+            self.queue_name = self._declare_queue(exchange_name, queue_name)
 
     def _declare_queue(self, exchange_name, queue_name):
         if not queue_name:
