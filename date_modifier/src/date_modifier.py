@@ -53,16 +53,24 @@ class DateModifier():
             return False
 
     def _callback(self, body):
-        line = json.loads(body.decode())
-        if "eof" in line:
+        batch = json.loads(body.decode())
+        if "eof" in batch:
             self.connection.stop_consuming()
             self.eof_manager.send_eof()
         else:
-            line['date'] = self._restar_dia(line['date'])
-            self.output_queue.send(json.dumps(line))
-            # ch.basic_publish(exchange=OUTPUT_EXCHANGE,
-            #                     routing_key='',
-            #                     body=json.dumps(line))
+            for item in batch["data"]:
+                item['date'] = self._restar_dia(item['date'])
+            self.output_queue.send(json.dumps({"data":batch["data"]}))
+
+    # def _callback(self, body):
+    #     line = json.loads(body.decode())
+    #     if "eof" in line:
+    #         self.connection.stop_consuming()
+    #         self.eof_manager.send_eof()
+    #     else:
+    #         line['date'] = self._restar_dia(line['date'])
+    #         self.output_queue.send(json.dumps(line))
+
     
     def run(self):
         self.input_queue.receive(self._callback)

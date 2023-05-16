@@ -23,7 +23,7 @@ services:
     depends_on:
     - prectot_filter
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: date_modifier:latest
@@ -39,7 +39,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: distance_calculator:latest
@@ -68,7 +68,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -84,7 +84,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -100,7 +100,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -116,7 +116,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -132,7 +132,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -191,7 +191,7 @@ services:
     - date_modifier
     - parser
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: joiner:latest
@@ -207,7 +207,7 @@ services:
     - filter_stations_query2
     - filter_trips_year
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: joiner:latest
@@ -223,7 +223,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: joiner:latest
@@ -239,7 +239,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: filter:latest
@@ -274,7 +274,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: parser:latest
@@ -305,7 +305,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: parser:latest
@@ -321,7 +321,7 @@ services:
       rabbitmq:
         condition: service_healthy
     deploy:
-      replicas: 2
+      replicas: 1
     environment:
     - PYTHONUNBUFFERED=1
     image: parser:latest

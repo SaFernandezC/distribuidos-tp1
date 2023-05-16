@@ -63,14 +63,15 @@ class Groupby:
         self.agg_function(key_dict, item)
 
     def _callback(self, body):
-        line = json.loads(body.decode())
-        if "eof" in line:
+        batch = json.loads(body.decode())
+        if "eof" in batch:
             self.connection.stop_consuming()
             function = eval(self.send_data_function)
             filtered = function(self.group_table)
             self.output_queue.send(json.dumps({"query": self.query, "results": filtered}))
         else:
-            self._group(line)
+            for line in batch["data"]:
+                self._group(line)
 
     def run(self):
         self.input_queue.receive(self._callback)

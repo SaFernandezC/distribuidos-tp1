@@ -2,11 +2,12 @@ import ujson as json
 
 def parse_weathers(item, city):
     item = item.split(',')
-    return json.dumps({"city": city, "date": item[0], "prectot": float(item[1])})
+    return {"city": city, "date": item[0], "prectot": float(item[1])}
+    # return json.dumps({"city": city, "date": item[0], "prectot": float(item[1])})
 
 def parse_trips(item, city):
     item = item.split(',')
-    return json.dumps({
+    return {
         "city": city,
         "start_date": item[0].split(' ')[0], # Viene con tiempo, no lo quiero
         "start_station_code": item[1],
@@ -14,18 +15,35 @@ def parse_trips(item, city):
         "end_station_code": item[3],
         "duration_sec": float(item[4]) if float(item[4]) >= 0 else 0,
         "yearid": item[-1]
-    })
+    }
+    # return json.dumps({
+    #     "city": city,
+    #     "start_date": item[0].split(' ')[0], # Viene con tiempo, no lo quiero
+    #     "start_station_code": item[1],
+    #     "end_date": item[2].split(' ')[0], # Viene con tiempo, no lo quiero
+    #     "end_station_code": item[3],
+    #     "duration_sec": float(item[4]) if float(item[4]) >= 0 else 0,
+    #     "yearid": item[-1]
+    # })
 
 def parse_stations(item, city):
     item = item.split(',')
-    return json.dumps({
+    return {
         "city": city,
         "code": item[0],
         "name": item[1],
         "latitude": float(item[2]) if item[2] != '' else 0,
         "longitude": float(item[3]) if item[3] != '' else 0,
         "yearid": item[-1],
-    })
+    }
+    # return json.dumps({
+    #     "city": city,
+    #     "code": item[0],
+    #     "name": item[1],
+    #     "latitude": float(item[2]) if item[2] != '' else 0,
+    #     "longitude": float(item[3]) if item[3] != '' else 0,
+    #     "yearid": item[-1],
+    # })
 
 
 # def send_eof(queue, msg):
@@ -49,6 +67,9 @@ def send(queue, batch):
     data = batch["data"]
     parser = def_function(batch["type"])
 
+    parsed = []
     for item in data:
-        parsed = parser(item, city)
-        queue.send(parsed)
+        parsed.append(parser(item, city))
+
+    batch = json.dumps({"data":parsed})
+    queue.send(batch)

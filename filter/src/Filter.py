@@ -80,20 +80,42 @@ class Filter:
         # time.sleep(15)
 
     def _callback(self, body):
-        line = json.loads(body.decode())
-        if "eof" in line:
+        batch = json.loads(body.decode())
+        if "eof" in batch:
             self.connection.stop_consuming()
             self.eof_manager.send_eof()
             print("Recibo eof -> Envio EOF")
         else:
-            filtered = True
-            filter_results = []
-            if self.amount_filters != SIN_FILTROS:
-                for filtro in self.filters:
-                    filter_results.append(self.filter(filtro, line))
+            data = []
+            for item in batch["data"]:
+                filtered = True
+                filter_results = []
+                if self.amount_filters != SIN_FILTROS:
+                    for filtro in self.filters:
+                        filter_results.append(self.filter(filtro, item))
 
-                filtered = self.apply_logic_operator(filter_results)
+                    filtered = self.apply_logic_operator(filter_results)
+                    
+                if filtered:
+                    data.append(self.select(item))
+                    # body=json.dumps(self.select(batch))
+            self.output_queue.send(json.dumps({"data":data}))
+
+    # def _callback(self, body):
+    #     line = json.loads(body.decode())
+    #     if "eof" in line:
+    #         self.connection.stop_consuming()
+    #         self.eof_manager.send_eof()
+    #         print("Recibo eof -> Envio EOF")
+    #     else:
+    #         filtered = True
+    #         filter_results = []
+    #         if self.amount_filters != SIN_FILTROS:
+    #             for filtro in self.filters:
+    #                 filter_results.append(self.filter(filtro, line))
+
+    #             filtered = self.apply_logic_operator(filter_results)
                 
-            if filtered:
-                body=json.dumps(self.select(line))
-                self.output_queue.send(message=body)
+    #         if filtered:
+    #             body=json.dumps(self.select(line))
+    #             self.output_queue.send(message=body)

@@ -40,13 +40,24 @@ class Joiner():
         
         self.side_table[tuple(values)] = item
 
+
     def _callback_queue1(self, body):
-        line = json.loads(body.decode())
-        if "eof" in line:
-            print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 1 ---> DEJO DE ESCUCHAR, {line}")
+        batch = json.loads(body.decode())
+        if "eof" in batch:
+            print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 1 ---> DEJO DE ESCUCHAR, {batch}")
             self.connection.stop_consuming()
         else:
-            self._add_item(line)
+            for item in batch["data"]:
+                self._add_item(item)
+
+
+    # def _callback_queue1(self, body):
+    #     line = json.loads(body.decode())
+    #     if "eof" in line:
+    #         print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 1 ---> DEJO DE ESCUCHAR, {line}")
+    #         self.connection.stop_consuming()
+    #     else:
+    #         self._add_item(line)
 
     def _select(self, row):
         if not self.fields_to_select: return row
@@ -57,18 +68,32 @@ class Joiner():
         return function(self.key2, item, self.side_table)
 
     def _callback_queue2(self, body):
-        line = json.loads(body.decode())
-    
-        if "eof" in line:
-            print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 2 ---> DEJO DE ESCUCHAR, {line}")
+        batch = json.loads(body.decode())
+        if "eof" in batch:
+            print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 2 ---> DEJO DE ESCUCHAR, {batch}")
             self.connection.stop_consuming()
             self.eof_manager.send_eof()
         else:
-            joined, res = self._join(line)
+            data = []
+            for item in batch["data"]:
+                joined, res = self._join(item)
 
-            if joined:
-                body=json.dumps(self._select(res))
-                self.output_queue.send(body)
+                if joined:
+                    data.append(self._select(res))
+            self.output_queue.send(json.dumps({"data":data}))
+
+    # def _callback_queue2(self, body):
+    #     line = json.loads(body.decode())
+    #     if "eof" in line:
+    #         print(f"{time.asctime(time.localtime())} RECIBO EOF CALLBACK 2 ---> DEJO DE ESCUCHAR, {line}")
+    #         self.connection.stop_consuming()
+    #         self.eof_manager.send_eof()
+    #     else:
+    #         joined, res = self._join(line)
+
+    #         if joined:
+    #             body=json.dumps(self._select(res))
+    #             self.output_queue.send(body)
 
     def run(self):
         self.input_queue1.receive(self._callback_queue1)
