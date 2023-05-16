@@ -70,9 +70,9 @@ def main():
         client.send_stations(stations)
         
         trips = {
-            "montreal": "./data/montreal/reduced_trips_montreal.csv",
-            "toronto": "./data/toronto/reduced_trips_toronto.csv",
-            "washington": "./data/washington/reduced_trips_washington.csv"
+            "montreal": "./data/montreal/trips.csv",
+            "toronto": "./data/toronto/trips.csv",
+            "washington": "./data/washington/trips.csv"
         }
 
         client.send_trips(trips)
