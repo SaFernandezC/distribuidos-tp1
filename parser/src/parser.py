@@ -13,7 +13,6 @@ class Parser():
         self.eof_manager = self.connection.EofProducer(output_exchange, output_exchange_type, input_queue)
         self.output_queue = self.connection.Publisher(output_exchange, output_exchange_type)
 
-
     def _callback(self, body):
         batch = json.loads(body.decode())
         if "eof" in batch:
@@ -27,4 +26,3 @@ class Parser():
         self.input_queue.receive(self._callback)
         self.connection.start_consuming()
         self.connection.close()
-        # time.sleep(15)

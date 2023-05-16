@@ -1,10 +1,10 @@
 import logging
 import signal
-from socket_wrapper import Socket
-from protocol import Protocol
+from .socket_wrapper import Socket
+from .protocol import Protocol
 import multiprocessing
 from common.Connection import Connection
-from utils import Asker
+from .utils import Asker
 import ujson as json
 
 FINISH = 'F'
@@ -20,10 +20,6 @@ class Server:
         self._server_socket = Socket()
         self._server_socket.bind('', port)
         self._server_socket.listen(listen_backlog)
-
-        # self.trip_parsers = trip_parsers
-        # self.weather_parsers = weather_parsers
-        # self.station_parsers = station_parsers
         
         self.is_alive = True
         signal.signal(signal.SIGTERM, self._handle_sigterm)
@@ -33,21 +29,10 @@ class Server:
         self.connection = Connection()
 
         self.metrics_queue = self.connection.Consumer(queue_name='metrics')
-
+        self.eof_manager = self.connection.EofProducer(None, None, None)
         self.trips_queue = self.connection.Producer(queue_name="trip")
         self.weathers_queue = self.connection.Producer(queue_name="weather")
         self.stations_queue = self.connection.Producer(queue_name="station")
-
-        self.eof_manager = self.connection.EofProducer(None, None, None)
-
-        # self.queue = Queue(exchange_name='raw_data', exchange_type='direct')
-        # self.metrics_queue = Queue(queue_name="metrics")
-
-        # self.trips_queue = Queue(queue_name="trip")
-        # self.weathers_queue = Queue(queue_name="weather")
-        # self.stations_queue = Queue(queue_name="station")
-
-        # self.eof_manager = Queue(queue_name="eof_manager")
 
         self.results_queue = multiprocessing.Queue()
         self.asker = Asker(self.connection, self.metrics_queue, self.results_queue)
@@ -65,20 +50,12 @@ class Server:
             self.weathers_queue.send(data)
         self.protocol.send_ack(client_sock, True)
 
-    # def calculate_eof(self, key):
-    #     if key == "trip": 
-    #         return self.trip_parsers
-    #     elif key == "station":
-    #          return self.station_parsers
-    #     else: return self.weather_parsers
-
     def send_eof(self, key):
         self.eof_manager.send_eof(json.dumps({"type":"work_queue", "queue": key}))
 
     def recv_eof(self, client_sock, key): 
         logging.debug(f'action: receiving eof')
         data = self.protocol.recv_data(client_sock)
-        # print("Data eof:", data)
         self.send_eof(key)
         self.protocol.send_ack(client_sock, True)
 
@@ -88,7 +65,6 @@ class Server:
         else:
             data = self.results_queue.get()
             self.protocol.send_result(client_sock, True, data)
-
 
     def handle_con(self, client_sock):
         while True:

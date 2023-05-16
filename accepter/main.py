@@ -1,10 +1,7 @@
-import ujson as json
-from common.queue import Queue
 from configparser import ConfigParser
-from server import Server
+from src.server import Server
 import logging
 import os
-import time
 
 
 def initialize_config():
@@ -41,9 +38,6 @@ def main():
     logging_level = config_params["logging_level"]
     port = config_params["port"]
     listen_backlog = config_params["listen_backlog"]
-    # trip_parsers = config_params["trip_parsers"]
-    # weather_parsers = config_params["weather_parsers"]
-    # station_parsers = config_params["station_parsers"]
 
     initialize_log(logging_level)
 

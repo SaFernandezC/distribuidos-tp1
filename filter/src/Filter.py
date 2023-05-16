@@ -1,4 +1,4 @@
-from utils import compare, apply_operator
+from .utils import compare, apply_operator
 from common.Connection import Connection
 import ujson as json
 import time
@@ -77,7 +77,6 @@ class Filter:
         self.input_queue.receive(self._callback)
         self.connection.start_consuming()
         self.connection.close()
-        # time.sleep(15)
 
     def _callback(self, body):
         batch = json.loads(body.decode())
@@ -98,24 +97,4 @@ class Filter:
                     
                 if filtered:
                     data.append(self.select(item))
-                    # body=json.dumps(self.select(batch))
             self.output_queue.send(json.dumps({"data":data}))
-
-    # def _callback(self, body):
-    #     line = json.loads(body.decode())
-    #     if "eof" in line:
-    #         self.connection.stop_consuming()
-    #         self.eof_manager.send_eof()
-    #         print("Recibo eof -> Envio EOF")
-    #     else:
-    #         filtered = True
-    #         filter_results = []
-    #         if self.amount_filters != SIN_FILTROS:
-    #             for filtro in self.filters:
-    #                 filter_results.append(self.filter(filtro, line))
-
-    #             filtered = self.apply_logic_operator(filter_results)
-                
-    #         if filtered:
-    #             body=json.dumps(self.select(line))
-    #             self.output_queue.send(message=body)
