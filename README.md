@@ -10,9 +10,7 @@
 
 ### **Ejecucion** 
 
-Para ejecutar el programa se debe clonar o descargar el repositorio y el data set ([Data set](https://www.kaggle.com/datasets/jeanmidev/public-bike-sharing-in-north-america?resource=download)).
-
-Tambien se puede utilizar un data set reducido ([Data set reducido](https://www.google.com/)).
+Para ejecutar el programa se debe clonar o descargar el repositorio y tambien descargar el data set ([Data set](https://www.kaggle.com/datasets/jeanmidev/public-bike-sharing-in-north-america?resource=download)).
 
 Se debe incluir el data set dentro del directorio `/data` en el cliente con la siguiente estructura:
 
@@ -37,8 +35,6 @@ Se debe incluir el data set dentro del directorio `/data` en el cliente con la s
 
 Ademas es necesario modificar el `docker-compose-client.yaml` dentro del cliente para que pueda reconocer la network de docker donde se ejecutan los contenedores del servidor, para ello se debe indicar la red con el siguiente formato:
 
-
-
 ```
 [nombre_directorio_raiz]_testing_net
 ```
@@ -55,7 +51,6 @@ services:
       - distribuidos-tp1_testing_net
     environment:
       - PYTHONUNBUFFERED=1
-    cpus: 0.4
     volumes:
       - ./data:/data
 
@@ -100,7 +95,7 @@ make docker-compose-logs
 
 ### Escalamiento
 
-Todos los componentes del servidor distribuido son escalables (excepto el accepter, groupby, eof manager y status controller). Se cuenta con un script para poder realizar el escalamiento de forma mas sencilla.
+Todos los componentes del servidor distribuido son escalables (excepto el accepter, groupby, eof manager y status controller) y se pueden ejecutar tantas instancias de cada componente como se desee. Se cuenta con un script para poder realizar el escalamiento de forma mas sencilla.
 
 Para usar el script se debe ejecutar el archivo `create_compose.py`, con los siguientes parametros:
 
