@@ -1,7 +1,8 @@
 from common.Connection import Connection
 import ujson as json
 from .utils import default, join_func_query3
-
+import signal
+import logging
 import time
 
 class Joiner():
@@ -19,8 +20,17 @@ class Joiner():
         self.input_queue2 = self.connection.Consumer(input_queue_name_2)
         self.output_queue = self.connection.Producer(output_queue_name)
 
+        self.running = True
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
         self.joiner_function = joiner_function
 
+    def _handle_sigterm(self, *args):
+        """
+        Handles SIGTERM signal
+        """
+        logging.info('SIGTERM received - Shutting server down')
+        self.connection.close()
+        
     def _parse_key(self, key):
         splitted = key.split(',')
         return tuple(splitted)

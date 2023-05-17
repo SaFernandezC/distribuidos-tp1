@@ -1,6 +1,8 @@
 import ujson as json
 from common.Connection import Connection
 import time
+import signal
+import logging
 
 class EofManager:
 
@@ -11,7 +13,17 @@ class EofManager:
         self.connection = Connection()
         self.eof_consumer = self.connection.Consumer('eof_manager')
         self.exchange_connections, self.queues_connection = self._declare_queues()
-        
+
+        self.running = True
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
+
+
+    def _handle_sigterm(self, *args):
+        """
+        Handles SIGTERM signal
+        """
+        logging.info('SIGTERM received - Shutting server down')
+        self.connection.close()
 
     def _declare_queues(self):
         exchanges = {

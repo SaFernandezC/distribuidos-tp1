@@ -120,7 +120,7 @@ class Server:
         self.is_alive = False
         try:
             self.ask_results.join()
-            self.metrics_queue.close()
+            self.connection.close()
             self._server_socket.close()
         except OSError as e:
             logging.error("action: stop server | result: fail | error: {}".format(e))

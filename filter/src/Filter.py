@@ -1,7 +1,8 @@
 from .utils import compare, apply_operator
 from common.Connection import Connection
 import ujson as json
-import time
+import signal
+import logging
 
 SIN_FILTROS = 0
 SIN_SELECCIONES = 0
@@ -15,6 +16,9 @@ class Filter:
         self.filters = self._parse_filters(raw_filters)
         self.operators = self._parse_operators(operators)
 
+        self.running = True
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
+
         self.connection = Connection()
         self.eof_manager = self.connection.EofProducer(output_exchange, output_queue_name, input_queue_name)
 
@@ -23,6 +27,14 @@ class Filter:
         if output_exchange_type == 'fanout':
             self.output_queue = self.connection.Publisher(output_exchange, output_exchange_type)
         else: self.output_queue = self.connection.Producer(queue_name=output_queue_name)
+
+
+    def _handle_sigterm(self, *args):
+        """
+        Handles SIGTERM signal
+        """
+        logging.info('SIGTERM received - Shutting server down')
+        self.connection.close()
 
 
     def _parse_fields_to_select(self, fields_list):

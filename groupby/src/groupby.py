@@ -1,10 +1,15 @@
 from common.Connection import Connection
 import ujson as json
 from .utils import default, find_dup_trips_year, find_stations_query_3
+import signal
+import logging
 
 class Groupby:
 
     def __init__(self, input_queue_name, output_queue_name, query, primary_key, agg, field_to_agregate, send_data_function):
+        
+        self.running = True
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
         
         self.key = self._parse_key(primary_key)
         self.agg_function = self._define_agg(agg)
@@ -17,6 +22,13 @@ class Groupby:
         self.output_queue = self.connection.Producer(output_queue_name)
 
         self.group_table = {}
+
+    def _handle_sigterm(self, *args):
+        """
+        Handles SIGTERM signal
+        """
+        logging.info('SIGTERM received - Shutting server down')
+        self.connection.close()
 
     def _parse_key(self, key):
         return key.split(',')
